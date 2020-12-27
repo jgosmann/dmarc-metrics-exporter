@@ -1,4 +1,5 @@
 from collections import defaultdict
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Dict
 
@@ -38,10 +39,19 @@ class DmarcMetrics:
 
 
 @dataclass
-class DmarcMetricsCollection:
+class DmarcMetricsCollection(Mapping):
     metrics: Dict[Meta, DmarcMetrics] = field(
         default_factory=lambda: defaultdict(DmarcMetrics)
     )
+
+    def __getitem__(self, key: Meta) -> DmarcMetrics:
+        return self.metrics[key]
+
+    def __iter__(self):
+        return iter(self.metrics)
+
+    def __len__(self) -> int:
+        return len(self.metrics)
 
     def update(self, event: DmarcEvent):
         self.metrics[event.meta].update(event.count, event.result)
