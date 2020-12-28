@@ -1,6 +1,7 @@
 import asyncio
 import smtplib
 import time
+from dataclasses import astuple, dataclass
 from email.message import EmailMessage
 from typing import Awaitable, Callable
 
@@ -11,12 +12,24 @@ import pytest
 from dmarc_metrics_exporter.imap_queue import ConnectionConfig, ImapClient, ImapQueue
 
 
+@dataclass
+class NetworkAddress:
+    host: str
+    port: int
+
+
+@dataclass
+class Greenmail:
+    smtp: NetworkAddress
+    imap: ConnectionConfig
+
+
 @pytest.fixture(name="docker_client")
 def fixture_docker_client() -> docker.DockerClient:
     return docker.from_env()
 
 
-@pytest.fixture(name="_greenmail")
+@pytest.fixture(name="greenmail")
 def fixture_greenmail(
     docker_client: docker.DockerClient,
 ) -> docker.models.containers.Container:
@@ -26,7 +39,12 @@ def fixture_greenmail(
         remove=True,
         ports={"3025/tcp": 3025, "3993/tcp": 3993},
     )
-    yield container
+    yield Greenmail(
+        smtp=NetworkAddress("localhost", 3025),
+        imap=ConnectionConfig(
+            host="localhost", port=3993, username="queue@localhost", password="password"
+        ),
+    )
     container.stop()
 
 
@@ -50,8 +68,8 @@ async def try_until_success(
     ) from last_err
 
 
-async def send_email(msg, host="localhost", port=3025):
-    smtp = smtplib.SMTP(host, port)
+async def send_email(msg: EmailMessage, network_address: NetworkAddress):
+    smtp = smtplib.SMTP(*astuple(network_address))
     smtp.send_message(msg)
     smtp.quit()
 
@@ -62,20 +80,16 @@ async def verify_email_delivered(connection: ConnectionConfig):
 
 
 @pytest.mark.asyncio
-async def test_successful_processing_of_existing_queue_message(_greenmail):
+async def test_successful_processing_of_existing_queue_message(greenmail):
     # Given
     msg = EmailMessage()
     msg.set_content("message content")
     msg["Subject"] = "Message subject"
     msg["From"] = "sender@some-domain.org"
-    msg["To"] = "queue@localhost"
+    msg["To"] = greenmail.imap.username
 
-    connection_config = ConnectionConfig(
-        host="localhost", port=3993, username="queue@localhost", password="password"
-    )
-
-    await try_until_success(lambda: send_email(msg))
-    await try_until_success(lambda: verify_email_delivered(connection_config))
+    await try_until_success(lambda: send_email(msg, greenmail.smtp))
+    await try_until_success(lambda: verify_email_delivered(greenmail.imap))
 
     is_done = asyncio.Event()
 
@@ -87,7 +101,7 @@ async def test_successful_processing_of_existing_queue_message(_greenmail):
         assert queue_msg.get_content().strip() == msg.get_content().strip()
 
     # When
-    queue = ImapQueue(connection=connection_config)
+    queue = ImapQueue(connection=greenmail.imap)
     queue.consume(handler)
     try:
         await asyncio.wait_for(is_done.wait(), 10)
@@ -95,5 +109,5 @@ async def test_successful_processing_of_existing_queue_message(_greenmail):
         await queue.stop_consumer()
 
     # Then
-    async with ImapClient(connection_config) as client:
+    async with ImapClient(greenmail.imap) as client:
         assert await client.select() == 0
