@@ -74,20 +74,37 @@ async def send_email(msg: EmailMessage, network_address: NetworkAddress):
     smtp.quit()
 
 
-async def verify_email_delivered(connection: ConnectionConfig):
+async def verify_email_delivered(connection: ConnectionConfig, mailboxes=("INBOX",)):
     async with ImapClient(connection) as client:
-        assert await client.select() > 0
+        msg_counts = await asyncio.gather(
+            *(client.select(mailbox) for mailbox in mailboxes)
+        )
+        assert any(count > 0 for count in msg_counts)
+
+
+async def verify_imap_available(connection: ConnectionConfig):
+    async with ImapClient(connection):
+        pass
+
+
+def create_dummy_email(to: str):
+    msg = EmailMessage()
+    msg.set_content("message content")
+    msg["Subject"] = "Message subject"
+    msg["From"] = "sender@some-domain.org"
+    msg["To"] = to
+    return msg
+
+
+def assert_emails_equal(a: EmailMessage, b: EmailMessage):
+    assert all(a[header] == b[header] for header in ("Subject", "From", "To"))
+    assert a.get_content().strip() == b.get_content().strip()
 
 
 @pytest.mark.asyncio
 async def test_successful_processing_of_existing_queue_message(greenmail):
     # Given
-    msg = EmailMessage()
-    msg.set_content("message content")
-    msg["Subject"] = "Message subject"
-    msg["From"] = "sender@some-domain.org"
-    msg["To"] = greenmail.imap.username
-
+    msg = create_dummy_email(greenmail.imap.username)
     await try_until_success(lambda: send_email(msg, greenmail.smtp))
     await try_until_success(lambda: verify_email_delivered(greenmail.imap))
 
@@ -95,14 +112,45 @@ async def test_successful_processing_of_existing_queue_message(greenmail):
 
     async def handler(queue_msg: EmailMessage, is_done=is_done):
         is_done.set()
-        assert all(
-            queue_msg[header] == msg[header] for header in ("Subject", "From", "To")
-        )
-        assert queue_msg.get_content().strip() == msg.get_content().strip()
+        assert_emails_equal(queue_msg, msg)
 
     # When
     queue = ImapQueue(connection=greenmail.imap)
     queue.consume(handler)
+    try:
+        await asyncio.wait_for(is_done.wait(), 10)
+    finally:
+        await queue.stop_consumer()
+
+    # Then
+    async with ImapClient(greenmail.imap) as client:
+        assert await client.select() == 0
+
+
+@pytest.mark.asyncio
+async def test_successful_processing_of_incoming_queue_message(greenmail):
+    # Given
+    msg = create_dummy_email(greenmail.imap.username)
+
+    is_done = asyncio.Event()
+
+    async def handler(queue_msg: EmailMessage, is_done=is_done):
+        is_done.set()
+        assert_emails_equal(queue_msg, msg)
+
+    # When
+    await try_until_success(lambda: verify_imap_available(greenmail.imap))
+    queue = ImapQueue(connection=greenmail.imap, poll_interval_seconds=0.1)
+    queue.consume(handler)
+
+    await asyncio.sleep(0.5)
+    await try_until_success(lambda: send_email(msg, greenmail.smtp))
+    await try_until_success(
+        lambda: verify_email_delivered(
+            greenmail.imap, mailboxes=("INBOX", queue.folders.done)
+        )
+    )
+
     try:
         await asyncio.wait_for(is_done.wait(), 10)
     finally:

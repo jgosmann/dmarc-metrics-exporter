@@ -27,10 +27,15 @@ class QueueFolders:
 
 class ImapQueue:
     def __init__(
-        self, *, connection: ConnectionConfig, folders: QueueFolders = QueueFolders()
+        self,
+        *,
+        connection: ConnectionConfig,
+        folders: QueueFolders = QueueFolders(),
+        poll_interval_seconds=10,
     ):
         self.connection = connection
         self.folders = folders
+        self.poll_interval_seconds = poll_interval_seconds
         self._stop = False
         self._consumer: Optional[Task[Any]] = None
 
@@ -42,10 +47,14 @@ class ImapQueue:
             for folder in astuple(self.folders):
                 await client.create_if_not_exists(folder)
 
-            msg_count = await client.select(self.folders.inbox)
-            async for uid, msg in client.fetch(1, msg_count):
-                await handler(msg)
-                await client.uid_move(uid, self.folders.done)
+            while not self._stop:
+                msg_count = await client.select(self.folders.inbox)
+                if msg_count > 0:
+                    async for uid, msg in client.fetch(1, msg_count):
+                        await handler(msg)
+                        await client.uid_move(uid, self.folders.done)
+                else:
+                    await asyncio.sleep(self.poll_interval_seconds)
 
     async def stop_consumer(self):
         self._stop = True
