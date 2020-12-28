@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import Dict, Iterator
 
 from dmarc_metrics_exporter.dmarc_event import (
     Disposition,
@@ -47,7 +47,7 @@ class DmarcMetricsCollection(Mapping):
     def __getitem__(self, key: Meta) -> DmarcMetrics:
         return self.metrics[key]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Meta]:
         return iter(self.metrics)
 
     def __len__(self) -> int:

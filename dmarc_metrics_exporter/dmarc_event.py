@@ -25,7 +25,7 @@ class DmarcResult:
     spf_aligned: bool
 
     @property
-    def dmarc_compliant(self):
+    def dmarc_compliant(self) -> bool:
         return (self.dkim_aligned and self.dkim_pass) or (
             self.spf_aligned and self.spf_pass
         )

@@ -1,5 +1,5 @@
 import threading
-from typing import Tuple, cast
+from typing import Tuple
 
 import uvicorn
 from prometheus_client.core import REGISTRY, CounterMetricFamily
@@ -112,5 +112,5 @@ class PrometheusExporter:
         )
 
     @classmethod
-    def _meta2labels(cls, meta: Meta) -> Tuple[str]:
-        return cast(Tuple[str], tuple(getattr(meta, label) for label in cls.LABELS))
+    def _meta2labels(cls, meta: Meta) -> Tuple[str, ...]:
+        return tuple(getattr(meta, label) for label in cls.LABELS)
