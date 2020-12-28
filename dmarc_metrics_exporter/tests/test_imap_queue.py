@@ -125,6 +125,7 @@ async def test_successful_processing_of_existing_queue_message(greenmail):
     # Then
     async with ImapClient(greenmail.imap) as client:
         assert await client.select() == 0
+        assert await client.select(queue.folders.done) == 1
 
 
 @pytest.mark.asyncio
@@ -159,3 +160,31 @@ async def test_successful_processing_of_incoming_queue_message(greenmail):
     # Then
     async with ImapClient(greenmail.imap) as client:
         assert await client.select() == 0
+        assert await client.select(queue.folders.done) == 1
+
+
+@pytest.mark.asyncio
+async def test_error_handling_when_processing_queue_message(greenmail):
+    # Given
+    msg = create_dummy_email(greenmail.imap.username)
+    await try_until_success(lambda: send_email(msg, greenmail.smtp))
+    await try_until_success(lambda: verify_email_delivered(greenmail.imap))
+
+    is_done = asyncio.Event()
+
+    async def handler(_queue_msg: EmailMessage, is_done=is_done):
+        is_done.set()
+        raise Exception("Error raised on purpose.")
+
+    # When
+    queue = ImapQueue(connection=greenmail.imap)
+    queue.consume(handler)
+    try:
+        await asyncio.wait_for(is_done.wait(), 10)
+    finally:
+        await queue.stop_consumer()
+
+    # Then
+    async with ImapClient(greenmail.imap) as client:
+        assert await client.select() == 0
+        assert await client.select(queue.folders.error) == 1

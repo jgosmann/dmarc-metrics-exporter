@@ -51,8 +51,12 @@ class ImapQueue:
                 msg_count = await client.select(self.folders.inbox)
                 if msg_count > 0:
                     async for uid, msg in client.fetch(1, msg_count):
-                        await handler(msg)
-                        await client.uid_move(uid, self.folders.done)
+                        try:
+                            await handler(msg)
+                        except Exception:  # pylint: disable=broad-except
+                            await client.uid_move(uid, self.folders.error)
+                        else:
+                            await client.uid_move(uid, self.folders.done)
                 else:
                     await asyncio.sleep(self.poll_interval_seconds)
 
