@@ -1,10 +1,11 @@
 import asyncio
-import email
+import email.policy
 import re
 from asyncio.tasks import Task
 from dataclasses import astuple, dataclass
-from email.message import Message
-from typing import Any, AsyncGenerator, Awaitable, Callable, Optional, Tuple
+from email.message import EmailMessage
+from email.parser import BytesParser
+from typing import Any, AsyncGenerator, Awaitable, Callable, Optional, Tuple, cast
 
 from aioimaplib import aioimaplib
 
@@ -85,7 +86,7 @@ class ImapClient:
 
     async def fetch(
         self, first_msg: int, last_msg: int
-    ) -> AsyncGenerator[Tuple[int, Message], None]:
+    ) -> AsyncGenerator[Tuple[int, EmailMessage], None]:
         lines = iter(
             await self._check(
                 "FETCH", self._client.fetch(f"{first_msg}:{last_msg}", "(UID RFC822)")
@@ -104,7 +105,10 @@ class ImapClient:
                         raise ImapClientError(
                             f"Expected group termination with ')', but got '{terminator}'."
                         )
-                    yield uid, email.message_from_bytes(mail)
+                    yield uid, cast(
+                        EmailMessage,
+                        BytesParser(policy=email.policy.default).parsebytes(mail),
+                    )
         except StopIteration:
             pass
 

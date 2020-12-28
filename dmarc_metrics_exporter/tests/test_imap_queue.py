@@ -79,8 +79,12 @@ async def test_successful_processing_of_existing_queue_message(_greenmail):
 
     is_done = asyncio.Event()
 
-    async def handler(_queue_msg, is_done=is_done):
+    async def handler(queue_msg: EmailMessage, is_done=is_done):
         is_done.set()
+        assert all(
+            queue_msg[header] == msg[header] for header in ("Subject", "From", "To")
+        )
+        assert queue_msg.get_content().strip() == msg.get_content().strip()
 
     # When
     queue = ImapQueue(connection=connection_config)
