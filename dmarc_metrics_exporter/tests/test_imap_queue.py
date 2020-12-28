@@ -90,4 +90,6 @@ async def test_successful_processing_of_existing_queue_message(_greenmail):
     finally:
         await queue.stop_consumer()
 
-    # TODO Then
+    # Then
+    async with ImapClient(connection_config) as client:
+        assert await client.select() == 0
