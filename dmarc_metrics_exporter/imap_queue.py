@@ -31,7 +31,7 @@ class ImapQueue:
         *,
         connection: ConnectionConfig,
         folders: QueueFolders = QueueFolders(),
-        poll_interval_seconds=10,
+        poll_interval_seconds=60,
     ):
         self.connection = connection
         self.folders = folders

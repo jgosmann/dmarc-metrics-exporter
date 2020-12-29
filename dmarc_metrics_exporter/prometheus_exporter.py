@@ -1,5 +1,6 @@
 import threading
-from typing import Tuple
+from contextlib import contextmanager
+from typing import Any, Generator, Tuple
 
 import uvicorn
 from prometheus_client.core import REGISTRY, CounterMetricFamily
@@ -10,9 +11,9 @@ from dmarc_metrics_exporter.dmarc_metrics import DmarcMetricsCollection
 
 
 class Server:
-    def __init__(self, exporter: "PrometheusExporter", port=9119):
+    def __init__(self, exporter: "PrometheusExporter", listen_addr: str, port: int):
         self.exporter = exporter
-        config = uvicorn.Config(make_asgi_app(), port=port)
+        config = uvicorn.Config(make_asgi_app(), host=listen_addr, port=port)
         self.server = uvicorn.Server(config)
         self.host = config.host
         self.port = port
@@ -43,10 +44,15 @@ class PrometheusExporter:
         self._metrics_lock = threading.Lock()
         self._metrics = metrics
 
-    def start_server(self):
-        return Server(self)
+    def start_server(self, listen_addr="127.0.0.1", port=9119) -> Server:
+        return Server(self, listen_addr, port)
 
-    def collect(self):
+    @contextmanager
+    def get_metrics(self) -> Generator[DmarcMetricsCollection, None, None]:
+        with self._metrics_lock:
+            yield self._metrics
+
+    def collect(self) -> Tuple[Any, ...]:
         dmarc_total = CounterMetricFamily(
             "dmarc_total", "Total number of reported messages.", labels=self.LABELS
         )
