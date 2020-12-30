@@ -10,9 +10,40 @@ from dmarc_metrics_exporter.deserialization import (
     get_aggregate_report_from_email,
 )
 from dmarc_metrics_exporter.dmarc_metrics import DmarcMetricsCollection
-from dmarc_metrics_exporter.imap_queue import ConnectionConfig, ImapQueue, QueueFolders
+from dmarc_metrics_exporter.imap_queue import ConnectionConfig as ImapConnectionConfig
+from dmarc_metrics_exporter.imap_queue import ImapQueue, QueueFolders
 from dmarc_metrics_exporter.metrics_persister import MetricsPersister
 from dmarc_metrics_exporter.prometheus_exporter import PrometheusExporter
+from dmarc_metrics_exporter.smtp_client import ConnectionConfig as SmtpConnectionConfig
+from dmarc_metrics_exporter.smtp_client import ConnectionManager, smtp_connection
+
+
+class Notifier:
+    def send_message(self, msg: EmailMessage):
+        raise NotImplementedError()
+
+
+class EmailNotifier(Notifier):
+    def __init__(
+        self,
+        smtp_factory: Callable[[], ConnectionManager],
+        from_addr: str,
+        to_addr: str,
+    ):
+        self.smtp_factory = smtp_factory
+        self.from_addr = from_addr
+        self.to_addr = to_addr
+
+    def send_message(self, msg: EmailMessage):
+        msg["From"] = self.from_addr
+        msg["To"] = self.to_addr
+        with self.smtp_factory() as smtp:
+            smtp.send_message(msg)
+
+
+class NoopNotifier(Notifier):
+    def send_message(self, _msg: EmailMessage):
+        pass
 
 
 def main(argv: Sequence[str]):
@@ -31,13 +62,27 @@ def main(argv: Sequence[str]):
 
     configuration = json.load(args.configuration)
     args.configuration.close()
+
+    notifier: Notifier
+    if "notify" in configuration:
+        smtp_factory = lambda: smtp_connection(
+            SmtpConnectionConfig(**configuration["notify"]["smtp"])
+        )
+        notifier = EmailNotifier(
+            smtp_factory,
+            configuration["notify"]["from_addr"],
+            configuration["notify"]["to_addr"],
+        )
+    else:
+        notifier = NoopNotifier()
+
     app = App(
         prometheus_addr=(
             configuration.get("listen_addr", "127.0.0.1"),
             configuration.get("port", 9119),
         ),
         imap_queue=ImapQueue(
-            connection=ConnectionConfig(**configuration["imap"]),
+            connection=ImapConnectionConfig(**configuration["imap"]),
             folders=QueueFolders(**configuration.get("folders", {})),
             poll_interval_seconds=configuration.get("poll_interval_seconds", 60),
         ),
@@ -46,6 +91,7 @@ def main(argv: Sequence[str]):
                 "metrics_db", "/var/lib/dmarc-metrics-exporter/metrics.db"
             )
         ),
+        notifier=notifier,
     )
 
     asyncio.run(app.run())
@@ -59,6 +105,7 @@ class App:
         imap_queue: ImapQueue,
         metrics_persister: MetricsPersister,
         exporter_cls: Callable[[DmarcMetricsCollection], Any] = PrometheusExporter,
+        notifier: Notifier,
         autosave_interval_seconds: float = 60,
     ):
         self.prometheus_addr = prometheus_addr
@@ -66,6 +113,7 @@ class App:
         self.imap_queue = imap_queue
         self.exporter_cls = exporter_cls
         self.metrics_persister = metrics_persister
+        self.notifier = notifier
         self.autosave_interval_seconds = autosave_interval_seconds
 
     async def run(self):
@@ -88,7 +136,11 @@ class App:
             self.metrics_persister.save(metrics)
 
     async def process_email(self, msg: EmailMessage):
-        for report in get_aggregate_report_from_email(msg):
-            for event in convert_to_events(report):
-                with self.exporter.get_metrics() as metrics:
-                    metrics.update(event)
+        try:
+            for report in get_aggregate_report_from_email(msg):
+                for event in convert_to_events(report):
+                    with self.exporter.get_metrics() as metrics:
+                        metrics.update(event)
+        except Exception:  # pylint: disable=broad-except
+            self.notifier.send_message(msg)
+            raise
