@@ -9,12 +9,21 @@ from dmarc_metrics_exporter.dmarc_metrics import DmarcMetricsCollection
 from .conftest import try_until_success
 
 
+class ServerMock:
+    async def __aenter__(self):
+        pass
+
+    async def __aexit__(self, exc_type, exc, traceback):
+        pass
+
+
 @pytest.mark.asyncio
 async def test_loads_persisted_metrics_and_stores_them_on_shutdown():
     metrics = DmarcMetricsCollection()
     metrics_provider = MagicMock()
     metrics_provider.__enter__.return_value = metrics
     exporter = MagicMock()
+    exporter.start_server.return_value = ServerMock()
     exporter.get_metrics.return_value = metrics_provider
     exporter_cls = MagicMock()
     exporter_cls.return_value = exporter
@@ -46,6 +55,7 @@ async def test_metrics_autosave():
     metrics_provider = MagicMock()
     metrics_provider.__enter__.return_value = metrics
     exporter = MagicMock()
+    exporter.start_server.return_value = ServerMock()
     exporter.get_metrics.return_value = metrics_provider
     exporter_cls = MagicMock()
     exporter_cls.return_value = exporter

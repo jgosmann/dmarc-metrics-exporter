@@ -1,7 +1,7 @@
 import argparse
 import asyncio
 import json
-from asyncio.exceptions import CancelledError
+from asyncio import CancelledError
 from email.message import EmailMessage
 from typing import Any, Callable, Sequence, Tuple
 
