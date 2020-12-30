@@ -80,7 +80,9 @@ class ImapClient:
         self.connection = connection
         self.timeout_seconds = timeout_seconds
         self._client = aioimaplib.IMAP4_SSL(
-            host=self.connection.host, port=self.connection.port
+            host=self.connection.host,
+            port=self.connection.port,
+            timeout=timeout_seconds,
         )
 
     async def __aenter__(self):
