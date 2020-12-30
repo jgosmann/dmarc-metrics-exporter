@@ -1,5 +1,6 @@
 import asyncio
 import email.policy
+import logging
 import re
 from asyncio.tasks import Task
 from dataclasses import astuple, dataclass
@@ -8,6 +9,8 @@ from email.parser import BytesParser
 from typing import Any, AsyncGenerator, Awaitable, Callable, Optional, Tuple, cast
 
 from aioimaplib import aioimaplib
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -31,11 +34,13 @@ class ImapQueue:
         *,
         connection: ConnectionConfig,
         folders: QueueFolders = QueueFolders(),
-        poll_interval_seconds=60,
+        poll_interval_seconds: int = 60,
+        timeout_seconds: int = 60,
     ):
         self.connection = connection
         self.folders = folders
         self.poll_interval_seconds = poll_interval_seconds
+        self.timeout_seconds = timeout_seconds
         self._stop = False
         self._consumer: Optional[Task[Any]] = None
 
@@ -43,22 +48,27 @@ class ImapQueue:
         self._consumer = asyncio.create_task(self._consume(handler))
 
     async def _consume(self, handler: Callable[[Any], Awaitable[None]]):
-        async with ImapClient(self.connection) as client:
-            for folder in astuple(self.folders):
-                await client.create_if_not_exists(folder)
+        while not self._stop:
+            try:
+                async with ImapClient(self.connection, self.timeout_seconds) as client:
+                    for folder in astuple(self.folders):
+                        await client.create_if_not_exists(folder)
 
-            while not self._stop:
-                msg_count = await client.select(self.folders.inbox)
-                if msg_count > 0:
-                    async for uid, msg in client.fetch(1, msg_count):
-                        try:
-                            await handler(msg)
-                        except Exception:  # pylint: disable=broad-except
-                            await client.uid_move(uid, self.folders.error)
-                        else:
-                            await client.uid_move(uid, self.folders.done)
-                else:
-                    await asyncio.sleep(self.poll_interval_seconds)
+                    msg_count = await client.select(self.folders.inbox)
+                    if msg_count > 0:
+                        async for uid, msg in client.fetch(1, msg_count):
+                            try:
+                                await handler(msg)
+                            except Exception:  # pylint: disable=broad-except
+                                logger.exception(
+                                    "Handler for message in IMAP queue failed."
+                                )
+                                await client.uid_move(uid, self.folders.error)
+                            else:
+                                await client.uid_move(uid, self.folders.done)
+            except (asyncio.TimeoutError, Exception):  # pylint: disable=broad-except
+                logger.exception("Error during IMAP queue polling.")
+            await asyncio.sleep(self.poll_interval_seconds)
 
     async def stop_consumer(self):
         self._stop = True
@@ -66,8 +76,9 @@ class ImapQueue:
 
 
 class ImapClient:
-    def __init__(self, connection: ConnectionConfig):
+    def __init__(self, connection: ConnectionConfig, timeout_seconds: int = 10):
         self.connection = connection
+        self.timeout_seconds = timeout_seconds
         self._client = aioimaplib.IMAP4_SSL(
             host=self.connection.host, port=self.connection.port
         )
@@ -84,7 +95,7 @@ class ImapClient:
         await self._check("LOGOUT", self._client.logout())
 
     async def _check(self, command: str, awaitable: Awaitable[Tuple[str, Any]]) -> Any:
-        res, data = await awaitable
+        res, data = await asyncio.wait_for(awaitable, self.timeout_seconds)
         if res != "OK":
             raise ImportError(command, res, data)
         return data

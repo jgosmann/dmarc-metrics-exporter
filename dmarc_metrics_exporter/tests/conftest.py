@@ -1,9 +1,10 @@
 import asyncio
 import smtplib
 import time
+from contextlib import contextmanager
 from dataclasses import astuple, dataclass
 from email.message import EmailMessage
-from typing import Any, Awaitable, Callable, Union
+from typing import Any, Awaitable, Callable, Generator, Union
 
 import docker.models
 import pytest
@@ -31,7 +32,15 @@ def fixture_docker_client() -> docker.DockerClient:
 @pytest.fixture(name="greenmail")
 def fixture_greenmail(
     docker_client: docker.DockerClient,
-) -> docker.models.containers.Container:
+) -> Generator[Greenmail, None, None]:
+    with run_greenmail(docker_client) as greenmail:
+        yield greenmail
+
+
+@contextmanager
+def run_greenmail(
+    docker_client: docker.DockerClient,
+) -> Generator[Greenmail, None, None]:
     container = docker_client.containers.run(
         "greenmail/standalone:1.6.0",
         detach=True,

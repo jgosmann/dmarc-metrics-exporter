@@ -17,6 +17,10 @@ class ServerMock:
         pass
 
 
+async def async_noop():
+    pass
+
+
 @pytest.mark.asyncio
 async def test_loads_persisted_metrics_and_stores_them_on_shutdown():
     metrics = DmarcMetricsCollection()
@@ -30,6 +34,7 @@ async def test_loads_persisted_metrics_and_stores_them_on_shutdown():
     metrics_persister = MagicMock()
     metrics_persister.load.return_value = metrics
     imap_queue = MagicMock()
+    imap_queue.stop_consumer.return_value = async_noop()
     app = App(
         prometheus_addr=("127.0.0.1", 9119),
         imap_queue=imap_queue,
@@ -62,6 +67,7 @@ async def test_metrics_autosave():
     metrics_persister = MagicMock()
     metrics_persister.load.return_value = metrics
     imap_queue = MagicMock()
+    imap_queue.stop_consumer.return_value = async_noop()
     app = App(
         prometheus_addr=("127.0.0.1", 9119),
         imap_queue=imap_queue,

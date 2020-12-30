@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dmarc-metrics-exporter"
-version = "0.1.0"
+version = "0.2.0"
 description = "Export Prometheus metrics from DMARC reports."
 authors = ["Jan Gosmann <jan@hyper-world.de>"]
 license = "MIT"
