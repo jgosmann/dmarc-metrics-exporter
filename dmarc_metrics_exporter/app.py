@@ -81,7 +81,7 @@ class App:
             pass
         finally:
             self._save_metrics()
-            self.imap_queue.stop_consumer()
+            await self.imap_queue.stop_consumer()
 
     def _save_metrics(self):
         with self.exporter.get_metrics() as metrics:
