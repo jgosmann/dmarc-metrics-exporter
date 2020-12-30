@@ -23,15 +23,14 @@ def main(argv: Sequence[str]):
     )
     parser.add_argument(
         "--configuration",
-        nargs=1,
         type=argparse.FileType("r"),
         default="/etc/dmarc-metrics-exporter.json",
         help="Configuration file",
     )
     args = parser.parse_args(argv)
 
-    configuration = json.load(args.configuration[0])
-    args.configuration[0].close()
+    configuration = json.load(args.configuration)
+    args.configuration.close()
     app = App(
         prometheus_addr=(
             configuration.get("listen_addr", "127.0.0.1"),
