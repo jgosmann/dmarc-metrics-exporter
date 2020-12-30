@@ -3,7 +3,7 @@ import smtplib
 import time
 from dataclasses import astuple, dataclass
 from email.message import EmailMessage
-from typing import Awaitable, Callable
+from typing import Any, Awaitable, Callable, Union
 
 import docker.models
 import pytest
@@ -48,7 +48,7 @@ def fixture_greenmail(
 
 
 async def try_until_success(
-    function: Callable[[], Awaitable],
+    function: Union[Callable[[], Awaitable], Callable[[], Any]],
     timeout_seconds: int = 10,
     max_fn_duration_seconds: int = 1,
     poll_interval_seconds: float = 0.1,
@@ -57,7 +57,11 @@ async def try_until_success(
     last_err = None
     while time.time() < timeout:
         try:
-            return await asyncio.wait_for(function(), max_fn_duration_seconds)
+            result = function()
+            if hasattr(result, "__await__"):
+                return await asyncio.wait_for(result, max_fn_duration_seconds)
+            else:
+                return result
         except Exception as err:  # pylint: disable=broad-except
             last_err = err
             await asyncio.sleep(poll_interval_seconds)

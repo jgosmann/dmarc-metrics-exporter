@@ -47,6 +47,7 @@ async def test_successful_processing_of_existing_queue_message(greenmail, tmp_pa
         "port": 9119,
         "imap": asdict(greenmail.imap),
         "poll_interval_seconds": 1,
+        "metrics_db": str(tmp_path / "metrics.db"),
     }
     config_path = tmp_path / "dmarc-metrics-exporter.conf"
     with open(config_path, "w") as f:
