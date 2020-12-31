@@ -1,0 +1,17 @@
+{
+    "listen_addr": "{{ listen_addr }}",
+    "port": {{ listen_port }},
+    "imap": {
+        "host": "{{ imap_host }}",
+        "port": {{ imap_port }},
+        "username": "{{ imap_username }}",
+        "password": "{{ imap_password }}"
+    },
+    "folders": {
+        "inbox": "{{ folder_inbox }}",
+        "done": "{{ folder_done }}",
+        "error": "{{ folder_error }}"
+    },
+    "metrics_db": "/var/lib/dmarc-metrics-exporter/metrics.db",
+    "poll_interval_seconds": {{ poll_interval_seconds }}
+}

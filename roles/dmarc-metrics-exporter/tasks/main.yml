@@ -1,0 +1,48 @@
+---
+- name: Provide dmarc-metrics user and group
+  block:
+    - group:
+        name: dmarc-metrics
+        system: yes
+    - user:
+        name: dmarc-metrics
+        system: yes
+        group: dmarc-metrics
+
+- name: Ensure path for metrics.db exists and is writable
+  file:
+    path: /var/lib/dmarc-metrics-exporter
+    owner: dmarc-metrics
+    group: dmarc-metrics
+    mode: "0755"
+    state: directory
+
+- name: Provide configuration
+  template:
+    src: dmarc-metrics-exporter.json.j2
+    dest: /etc/dmarc-metrics-exporter.json
+    owner: root
+    group: dmarc-metrics
+    mode: "0640"
+
+- name: Install dmarc-metrics-exporter
+  become: yes
+  become_user: dmarc-metrics
+  pip:
+    name: dmarc-metrics-exporter
+    version: "{{ dmarc_metrics_exporter_version }}"
+
+- name: Install systemd service
+  copy:
+    src: dmarc-metrics-exporter.service
+    dest: /etc/systemd/system/dmarc-metrics-exporter.service
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Activate systemd service
+  systemd:
+    name: dmarc-metrics-exporter.service
+    daemon_reload: yes
+    enabled: yes
+    state: restarted
