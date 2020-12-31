@@ -45,6 +45,11 @@ Each of these metrics is subdivided by the following labels:
 Installation
 ------------
 
+This describes the manual setup fo dmarc-metrics-exporter.
+An Ansible role for automated deployment is provided in ``roles``.
+Further instructions for Ansible are given in the readme file
+provided in that directory.
+
 It is best to run dmarc-metrics-exporter under a separate system user account.
 Create one for example with
 
