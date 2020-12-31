@@ -1,0 +1,9 @@
+---
+galaxy_info:
+  role_name: dmarc-metrics-exporter
+  author: Jan Gosmann
+  description: Export Prometheus metrics from DMARC reports.
+  license: MIT
+  min_ansible_version: 2.9
+
+dependencies: []
