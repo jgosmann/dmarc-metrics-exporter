@@ -1,3 +1,19 @@
+.. image:: https://travis-ci.com/jgosmann/dmarc-metrics-exporter.svg?branch=main
+  :target: https://travis-ci.com/jgosmann/dmarc-metrics-exporter
+  :alt: Travis-CI build
+.. image:: https://codecov.io/gh/jgosmann/dmarc-metrics-exporter/branch/main/graph/badge.svg?token=O4M05YWNQK
+  :target: https://codecov.io/gh/jgosmann/dmarc-metrics-exporter
+  :alt: Codecov coverage
+.. image:: https://img.shields.io/pypi/v/dmarc-metrics-exporter
+  :target: https://pypi.org/project/dmarc-metrics-exporter/
+  :alt: PyPI
+.. image:: https://img.shields.io/pypi/pyversions/dmarc-metrics-exporter
+  :target: https://pypi.org/project/dmarc-metrics-exporter/
+  :alt: PyPI - Python Version
+.. image:: https://img.shields.io/pypi/l/dmarc-metrics-exporter
+  :target: https://pypi.org/project/dmarc-metrics-exporter/
+  :alt: PyPI - License
+
 dmarcs-metrics-exporter
 =======================
 
