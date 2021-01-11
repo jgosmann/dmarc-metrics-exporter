@@ -1,11 +1,11 @@
 [tool.poetry]
 name = "dmarc-metrics-exporter"
-version = "0.2.2"
+version = "0.2.3"
 description = "Export Prometheus metrics from DMARC reports."
 authors = ["Jan Gosmann <jan@hyper-world.de>"]
 license = "MIT"
 readme = "README.rst"
-repository = "https://github.com/jgosmann/doveseed/"
+repository = "https://github.com/jgosmann/dmarc-metrics-exporter/"
 keywords = ["DMARC", "DKIM", "SPF", "Prometheus"]
 classifiers = [
     "Development Status :: 4 - Beta",
