@@ -1,6 +1,6 @@
 {
     "listen_addr": "127.0.0.1",
-    "port": 9119,
+    "port": 9797,
     "imap": {
         "host": "localhost",
         "port": 993,

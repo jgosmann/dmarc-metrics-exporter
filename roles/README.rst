@@ -40,7 +40,7 @@ Available role variables
 
 * ``dmarc_metrics_exporter_version`` (string, default: ``""``): dmarc-metrics-exporter version to install.
 * ``listen_addr`` (string, default ``"127.0.0.1"``): Listen address for the HTTP endpoint.
-* ``listen_port`` (number, default ``9119``): Port to listen on for the HTTP endpoint.
+* ``listen_port`` (number, default ``9797``): Port to listen on for the HTTP endpoint.
 * ``imap_host`` (string, default ``"localhost"``): Hostname of IMAP server to connect to.
 * ``imap_port`` (number, default ``993``): Port of the IMAP server to connect to.
 * ``imap_username`` (string, required): Login username for the IMAP connection.

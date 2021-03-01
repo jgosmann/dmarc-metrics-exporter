@@ -34,7 +34,7 @@ def main(argv: Sequence[str]):
     app = App(
         prometheus_addr=(
             configuration.get("listen_addr", "127.0.0.1"),
-            configuration.get("port", 9119),
+            configuration.get("port", 9797),
         ),
         imap_queue=ImapQueue(
             connection=ConnectionConfig(**configuration["imap"]),

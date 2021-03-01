@@ -25,7 +25,7 @@ async def async_noop():
 
 @dataclass
 class AppDependencies:
-    prometheus_addr: Tuple[str, int] = ("127.0.0.1", 9119)
+    prometheus_addr: Tuple[str, int] = ("127.0.0.1", 9797)
     exporter_cls: MagicMock = field(default_factory=MagicMock)
     metrics_persister: MagicMock = field(default_factory=MagicMock)
     imap_queue: MagicMock = field(default_factory=MagicMock)

@@ -94,7 +94,7 @@ An example configuration file is provided in this repository in
 The following configuration options are available:
 
 * ``listen_addr`` (string, default ``"127.0.0.1"``): Listen address for the HTTP endpoint.
-* ``port`` (number, default ``9119``): Port to listen on for the HTTP endpoint.
+* ``port`` (number, default ``9797``): Port to listen on for the HTTP endpoint.
 * ``imap`` (object, required): IMAP configuration to check for aggregate reports.
 
   * ``host`` (string, default ``"localhost"``): Hostname of IMAP server to connect to.

@@ -44,7 +44,7 @@ async def test_successful_processing_of_existing_queue_message(greenmail, tmp_pa
 
     config = {
         "listen_addr": "127.0.0.1",
-        "port": 9119,
+        "port": 9797,
         "imap": asdict(greenmail.imap),
         "poll_interval_seconds": 1,
         "metrics_db": str(tmp_path / "metrics.db"),

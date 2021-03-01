@@ -44,7 +44,7 @@ class PrometheusExporter:
         self._metrics_lock = threading.Lock()
         self._metrics = metrics
 
-    def start_server(self, listen_addr="127.0.0.1", port=9119) -> Server:
+    def start_server(self, listen_addr="127.0.0.1", port=9797) -> Server:
         return Server(self, listen_addr, port)
 
     @contextmanager
