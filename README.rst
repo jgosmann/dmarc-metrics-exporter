@@ -152,3 +152,49 @@ To have dmarc-metrics-exporter start on system boot:
 .. code-block:: bash
 
     systemctl enable dmarc-metrics-exporter
+
+Docker
+------
+A new docker image is build with github actions as described in this yaml-file: ``.github/workflows/docker-publish.yml``.
+
+Example docker-compose file:
+
+.. code-block:: yml
+
+    version: "3"
+    
+    services:
+    
+      dmarc-metrics-exporter:
+        # source: https://github.com/orgs/hotio/packages/container/package/readarr
+        container_name: dmarc-metrics-exporter
+        hostname: dmarc-metrics-exporter
+        image: ghcr.io/jamborjan/dmarc-metrics-exporter:main
+        restart: unless-stopped
+        expose:
+          - 9797
+        environment:
+          - PUID=1000
+          - PGID=1000
+          - TZ=Europe/Berlin
+          - UMASK_SET=022
+        volumes:
+          - '/share/Container/dmarc-metrics-exporter/dmarc-metrics-exporter.json:/etc/dmarc-metrics-exporter.json'
+        logging:
+          driver: "json-file"
+          options:
+            tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+        networks:
+          - YourDockerLan
+    
+    # $ docker network create -d bridge --attachable YourDockerLan
+    networks:
+      YourDockerLan:
+        external:
+          name: YourDockerLan
+
+Hints
+-----
+You should not use your normal email and password credentials for the dmarc metrics exporter. If you are not able to create a dedicated service account email account, you should use an app password. 
+
+If you are using Microsoft O365 / exchange online, you can create that for your account here: https://account.activedirectory.windowsazure.com/AppPasswords.aspx. You have to use your normal email address and a specific password. You can revoke the password at any time which creates an extra layer of security.
