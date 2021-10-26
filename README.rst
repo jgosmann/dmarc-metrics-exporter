@@ -195,6 +195,6 @@ Example docker-compose file:
 
 Hints
 -----
-You should not use your normal email and password credentials for the dmarc metrics exporter. If you are not able to create a dedicated service account email account, you should use an app password. 
+You should not use your normal email and password credentials for the dmarc-metrics-exporter. If you are not able to create a dedicated service account email account, you should use an app password. 
 
 If you are using Microsoft O365 / exchange online, you can create that for your account here: https://account.activedirectory.windowsazure.com/AppPasswords.aspx. You have to use your normal email address and a specific password. You can revoke the password at any time which creates an extra layer of security.
