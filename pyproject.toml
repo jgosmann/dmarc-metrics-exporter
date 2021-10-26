@@ -22,7 +22,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.7,<3.9"
 prometheus_client = "^0.9.0"
-xsdata = "^20.12"
+xsdata = "^21.9"
 uvicorn = {extras = ["standard"], version = "^0.13.2"}
 aioimaplib = "^0.7.18"
 dataclasses-serialization = "^1.3.1"
