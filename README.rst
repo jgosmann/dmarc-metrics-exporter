@@ -1,5 +1,5 @@
-.. image:: https://travis-ci.com/jgosmann/dmarc-metrics-exporter.svg?branch=main
-  :target: https://travis-ci.com/jgosmann/dmarc-metrics-exporter
+.. image:: https://app.travis-ci.com/jgosmann/dmarc-metrics-exporter.svg?branch=main
+  :target: https://app.travis-ci.com/jgosmann/dmarc-metrics-exporter
   :alt: Travis-CI build
 .. image:: https://codecov.io/gh/jgosmann/dmarc-metrics-exporter/branch/main/graph/badge.svg?token=O4M05YWNQK
   :target: https://codecov.io/gh/jgosmann/dmarc-metrics-exporter
