@@ -15,16 +15,17 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
     "Topic :: Communications :: Email",
     "Topic :: System :: Monitoring"
 ]
 
 [tool.poetry.dependencies]
-python = "^3.7,<3.9"
+python = "^3.7,<3.10"
 prometheus_client = "^0.11.0"
 xsdata = "^21.9"
 uvicorn = {extras = ["standard"], version = "^0.15.0"}
-aioimaplib = "^0.7.18"
+aioimaplib = "^0.9.0"
 dataclasses-serialization = "^1.3.1"
 
 [tool.poetry.dev-dependencies]

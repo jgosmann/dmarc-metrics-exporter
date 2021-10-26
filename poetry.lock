@@ -19,7 +19,7 @@ speedups = ["aiodns", "brotlipy", "cchardet"]
 
 [[package]]
 name = "aioimaplib"
-version = "0.7.18"
+version = "0.9.0"
 description = "Python asyncio IMAP4rev1 client library"
 category = "main"
 optional = false
@@ -725,7 +725,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7,<3.9"
-content-hash = "30de53b9ff82b1db891774b356b593609d446711b93112797c316e04aff350e6"
+content-hash = "5274244d1aa3f21cc2fb93d3e987cc2b5c7cb33da9c80d2d5560cc65de3244e5"
 
 [metadata.files]
 aiohttp = [
@@ -768,9 +768,9 @@ aiohttp = [
     {file = "aiohttp-3.7.4.post0.tar.gz", hash = "sha256:493d3299ebe5f5a7c66b9819eacdcfbbaaf1a8e84911ddffcdc48888497afecf"},
 ]
 aioimaplib = [
-    {file = "aioimaplib-0.7.18-py3-none-any.whl", hash = "sha256:5b75569ce887eef0c95602c6d6675ba60effc15ca79ed3028be4bceeac6adad3"},
-    {file = "aioimaplib-0.7.18-py3.7.egg", hash = "sha256:fc484a212ce612f8c54956a5651f29fde5c67e2000a878fb5d87700101acad5d"},
-    {file = "aioimaplib-0.7.18.tar.gz", hash = "sha256:c1dae8c97585e1a842782febf0aa949dfff688439c0a3d6211968cba0d05498b"},
+    {file = "aioimaplib-0.9.0-py3-none-any.whl", hash = "sha256:64ac8167f9474647e71bc81933f849b63c7ef4509516fc4986c7fc5fd57aafb7"},
+    {file = "aioimaplib-0.9.0-py3.9.egg", hash = "sha256:91a3c6a9804b8c45f4de14e86cb8e80730a6c9c0206d87e9efd2c27c2e802e97"},
+    {file = "aioimaplib-0.9.0.tar.gz", hash = "sha256:a42335aa153698227afc2478b81ad1fd1605202548adb519348d322a6e5bd445"},
 ]
 asgiref = [
     {file = "asgiref-3.4.1-py3-none-any.whl", hash = "sha256:ffc141aa908e6f175673e7b1b3b7af4fdb0ecb738fc5c8b88f69f055c2415214"},
