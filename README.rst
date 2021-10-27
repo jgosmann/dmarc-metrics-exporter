@@ -93,7 +93,7 @@ An example configuration file is provided in this repository in
 
 The following configuration options are available:
 
-* ``listen_addr`` (string, default ``"127.0.0.1"``): Listen address for the HTTP endpoint.
+* ``listen_addr`` (string, default ``"127.0.0.1"``): Listen address for the HTTP endpoint. Use ``"0.0.0.0"`` if running in a dockerized environment.
 * ``port`` (number, default ``9797``): Port to listen on for the HTTP endpoint.
 * ``imap`` (object, required): IMAP configuration to check for aggregate reports.
 
@@ -188,6 +188,24 @@ Example docker-compose file:
       YourDockerLan:
         external:
           name: YourDockerLan
+
+Prometheus
+------
+
+Example prometheus config file:
+
+.. code-block:: yml
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    
+    rule_files:
+    
+    scrape_configs:
+    
+      - job_name: 'dmarc-metrics-exporter'
+        static_configs:
+          - targets: ['dmarc-metrics-exporter:9797']
 
 Hints
 -----
