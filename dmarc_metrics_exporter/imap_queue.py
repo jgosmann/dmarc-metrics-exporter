@@ -161,9 +161,10 @@ class ImapClient:
             await self._check(
                 "UID STORE",
                 self._client.uid(
-                   "store",
-                   str(uid),
-                   r"+FLAGS.SILENT (\Deleted)",
+                    "store",
+                    str(uid),
+                    r"+FLAGS.SILENT (\Deleted)",
+                ),
             )
             await self._check("UID EXPUNGE", self._client.uid("expunge", str(uid)))
 
