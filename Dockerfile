@@ -1,4 +1,4 @@
-FROM python:3
+FROM python:3.9
 
 # adduser and directories
 RUN adduser --system --group --uid 1000 dmarc-metrics && \
