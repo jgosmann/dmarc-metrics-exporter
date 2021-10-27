@@ -166,19 +166,16 @@ Example docker-compose file:
     services:
     
       dmarc-metrics-exporter:
+        # source: https://github.com/jamborjan/dmarc-metrics-exporter/pkgs/container/dmarc-metrics-exporter
         container_name: dmarc-metrics-exporter
         hostname: dmarc-metrics-exporter
         image: ghcr.io/jamborjan/dmarc-metrics-exporter:main
         restart: unless-stopped
+        user: 1000:1000 #PUID=1000:PGID=1000
         expose:
           - 9797
-        environment:
-          - PUID=1000
-          - PGID=1000
-          - TZ=Europe/Berlin
-          - UMASK_SET=022
         volumes:
-          - '/share/Container/dmarc-metrics-exporter/dmarc-metrics-exporter.json:/etc/dmarc-metrics-exporter.json'
+          - '/host/folder/dmarc-metrics-exporter.json:/etc/dmarc-metrics-exporter.json'
         logging:
           driver: "json-file"
           options:
