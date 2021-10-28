@@ -4,5 +4,10 @@ services:
 python:
   - "3.7"
   - "3.8"
+  - "3.9"
+  - "3.10"
+jobs:
+  allow_failures:
+    - python: "3.10"
 install: pip install poetry && poetry install
 script: poetry run pytest --cov-report=xml --cov=dmarc_metrics_exporter && bash <(curl -s https://codecov.io/bash)

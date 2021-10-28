@@ -47,7 +47,7 @@ SAMPLE_XML = """
     </auth_results>
   </record>
 </feedback>
-"""
+""".strip()
 
 SAMPLE_DATACLASS = m.Feedback(
     report_metadata=m.ReportMetadataType(
