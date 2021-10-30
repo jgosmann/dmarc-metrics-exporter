@@ -1,0 +1,14 @@
+name: Setup project
+description: Setup Plato project with poetry
+runs:
+  using: composite
+  steps:
+    - name: Install poetry
+      run: pip install poetry
+      shell: bash
+
+    - name: Install dependencies
+      run: poetry install
+      shell: bash
+      env:
+        POETRY_VIRTUALENVS_IN_PROJECT: true
