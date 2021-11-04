@@ -46,11 +46,11 @@ class MetricsPersister:
 
     def load(self) -> DmarcMetricsCollection:
         try:
-            with open(self.path, "r") as f:
+            with open(self.path, "r", encoding="utf-8") as f:
                 return JSONSerializer.deserialize(DmarcMetricsCollection, json.load(f))
         except FileNotFoundError:
             return DmarcMetricsCollection()
 
     def save(self, metrics: DmarcMetricsCollection):
-        with open(self.path, "w") as f:
+        with open(self.path, "w", encoding="utf-8") as f:
             json.dump(JSONSerializer.serialize(metrics), f)

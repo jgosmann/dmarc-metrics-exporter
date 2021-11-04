@@ -1,0 +1,8 @@
+version: "3.9"
+services:
+  greenmail:
+    image: "greenmail/standalone:1.6.5"
+    ports:
+      - "3025:3025"
+      - "3993:3993"
+      - "127.0.0.1:8080:8080"
