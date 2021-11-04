@@ -160,10 +160,10 @@ Development
 Prerequisites
 ^^^^^^^^^^^^^
 
-* [Python](https://www.python.org/)
-* [pre-commit](https://pre-commit.com/)
-* [Poetry](https://python-poetry.org/)
-* [Docker](https://www.docker.com/)
+* `Python <https://www.python.org/>`_
+* `pre-commit <https://pre-commit.com/>`_
+* `Poetry <https://python-poetry.org/>`_
+* `Docker <https://www.docker.com/>`_
 
 Setup development environment
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
