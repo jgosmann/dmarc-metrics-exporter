@@ -1,4 +1,3 @@
-from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Dict, Iterator
@@ -14,9 +13,7 @@ from dmarc_metrics_exporter.dmarc_event import (
 @dataclass
 class DmarcMetrics:
     total_count: int = 0
-    disposition_counts: Dict[Disposition, int] = field(
-        default_factory=lambda: defaultdict(lambda: 0)
-    )
+    disposition_counts: Dict[Disposition, int] = field(default_factory=dict)
     dmarc_compliant_count: int = 0
     dkim_pass_count: int = 0
     spf_pass_count: int = 0
@@ -25,6 +22,8 @@ class DmarcMetrics:
 
     def update(self, count: int, result: DmarcResult):
         self.total_count += count
+        if result.disposition not in self.disposition_counts:
+            self.disposition_counts[result.disposition] = 0
         self.disposition_counts[result.disposition] += count
         if result.dmarc_compliant:
             self.dmarc_compliant_count += count
@@ -40,9 +39,7 @@ class DmarcMetrics:
 
 @dataclass
 class DmarcMetricsCollection(Mapping):
-    metrics: Dict[Meta, DmarcMetrics] = field(
-        default_factory=lambda: defaultdict(DmarcMetrics)
-    )
+    metrics: Dict[Meta, DmarcMetrics] = field(default_factory=dict)
 
     def __getitem__(self, key: Meta) -> DmarcMetrics:
         return self.metrics[key]
@@ -54,4 +51,6 @@ class DmarcMetricsCollection(Mapping):
         return len(self.metrics)
 
     def update(self, event: DmarcEvent):
+        if event.meta not in self.metrics:
+            self.metrics[event.meta] = DmarcMetrics()
         self.metrics[event.meta].update(event.count, event.result)

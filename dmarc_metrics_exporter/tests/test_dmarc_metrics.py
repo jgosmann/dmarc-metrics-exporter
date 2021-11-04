@@ -32,7 +32,7 @@ def test_dmarc_metrics_upate():
 
 
 def test_dmarc_metrics_collection_update():
-    metrics_collector = DmarcMetricsCollection()
+    metrics_collector = DmarcMetricsCollection({})
     meta = Meta(
         reporter="google.com",
         from_domain="mydomain.de",
