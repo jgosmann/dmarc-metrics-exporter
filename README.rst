@@ -152,3 +152,31 @@ To have dmarc-metrics-exporter start on system boot:
 .. code-block:: bash
 
     systemctl enable dmarc-metrics-exporter
+
+
+Development
+-----------
+
+Prerequisites
+^^^^^^^^^^^^^
+
+* [Python](https://www.python.org/)
+* [pre-commit](https://pre-commit.com/)
+* [Poetry](https://python-poetry.org/)
+* [Docker](https://www.docker.com/)
+
+Setup development environment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+```bash
+pre-commit install
+poetry install
+```
+
+Run tests
+^^^^^^^^^
+
+```bash
+docker-compose up -d
+poetry run pytest
+```

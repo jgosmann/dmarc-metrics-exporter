@@ -1,13 +1,12 @@
 import asyncio
 import smtplib
 import time
-from contextlib import contextmanager
 from dataclasses import astuple, dataclass
 from email.message import EmailMessage
-from typing import Any, Awaitable, Callable, Generator, Union
+from typing import Any, Awaitable, Callable, Union
 
-import docker.models
 import pytest
+import requests
 
 from dmarc_metrics_exporter.imap_queue import ConnectionConfig, ImapClient
 
@@ -22,38 +21,37 @@ class NetworkAddress:
 class Greenmail:
     smtp: NetworkAddress
     imap: ConnectionConfig
+    api: NetworkAddress
 
+    @property
+    def api_url(self) -> str:
+        return f"http://{self.api.host}:{self.api.port}/api"
 
-@pytest.fixture(name="docker_client")
-def fixture_docker_client() -> docker.DockerClient:
-    return docker.from_env()
+    def is_ready(self) -> bool:
+        return (
+            requests.get(f"{self.api_url}/service/readiness").status_code
+            == requests.codes.ok
+        )
+
+    def purge_mails(self):
+        requests.post(f"{self.api_url}/mail/purge").raise_for_status()
+
+    async def restart(self):
+        requests.post(f"{self.api_url}/service/reset")
+        await try_until_success(self.is_ready)
 
 
 @pytest.fixture(name="greenmail")
-def fixture_greenmail(
-    docker_client: docker.DockerClient,
-) -> Generator[Greenmail, None, None]:
-    with run_greenmail(docker_client) as greenmail:
-        yield greenmail
-
-
-@contextmanager
-def run_greenmail(
-    docker_client: docker.DockerClient,
-) -> Generator[Greenmail, None, None]:
-    container = docker_client.containers.run(
-        "greenmail/standalone:1.6.0",
-        detach=True,
-        remove=True,
-        ports={"3025/tcp": 3025, "3993/tcp": 3993},
-    )
-    yield Greenmail(
+def fixture_greenmail() -> Greenmail:
+    greenmail = Greenmail(
         smtp=NetworkAddress("localhost", 3025),
         imap=ConnectionConfig(
             host="localhost", port=3993, username="queue@localhost", password="password"
         ),
+        api=NetworkAddress("localhost", 8080),
     )
-    container.stop()
+    greenmail.purge_mails()
+    return greenmail
 
 
 async def try_until_success(
@@ -91,8 +89,3 @@ async def verify_email_delivered(connection: ConnectionConfig, mailboxes=("INBOX
             *(client.select(mailbox) for mailbox in mailboxes)
         )
         assert any(count > 0 for count in msg_counts)
-
-
-async def verify_imap_available(connection: ConnectionConfig):
-    async with ImapClient(connection):
-        pass

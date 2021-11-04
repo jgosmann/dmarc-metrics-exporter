@@ -37,7 +37,6 @@ mypy = "^0.910"
 pylint = "^2.6.0"
 pytest = "^6.2.1"
 pytest-asyncio = "^0.16.0"
-pytest-cov = "^3.0.0"
 requests = "^2.26.0"
 types-requests = "^2.25.11"
 
