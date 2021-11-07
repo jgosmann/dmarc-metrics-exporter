@@ -49,3 +49,4 @@ Available role variables
 * ``folder_done`` (string, default ``"Archive"``): IMAP mailbox that successfully processed reports are moved to.
 * ``folder_error``: (string, default ``"Invalid"``): IMAP mailbox that emails are moved to that could not be processed.
 * ``poll_interval_seconds`` (number, default ``60``): How often to poll the IMAP server in seconds.
+* ``deduplication_max_seconds`` (number, default ``604800`` which is 7 days): How long individual report IDs will be remembered to avoid counting double delivered reports twice.
