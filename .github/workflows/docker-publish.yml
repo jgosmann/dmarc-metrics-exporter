@@ -63,6 +63,6 @@ jobs:
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: jgosmann/dmarc-metrics-exporter:${{ steps.version.outputs.VERSION }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: "version=${{ steps.version.outputs.VERSION }}"
