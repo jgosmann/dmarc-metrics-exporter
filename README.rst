@@ -202,6 +202,7 @@ Prometheus
 Example prometheus config file:
 
 .. code-block:: yml
+
     global:
       scrape_interval: 15s
       evaluation_interval: 15s
