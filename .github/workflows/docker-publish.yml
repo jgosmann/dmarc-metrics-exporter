@@ -7,6 +7,10 @@ name: Docker
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Published version on PyPI to build a Docker image for.'
+        required: true
   workflow_run:
     workflows: ["CI and release pipeline"]
     # Publish semver tags as releases.
@@ -31,7 +35,7 @@ jobs:
     steps:
       - name: Get the version
         id: version
-        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/v}
+        run: if [ -z '${{ github.event.inputs.version }}' ]; then echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/v}; else echo ::set-output name=VERSION::${{ github.event.inputs.version }}; fi
 
       - name: Checkout repository
         uses: actions/checkout@v2
