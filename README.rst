@@ -240,14 +240,16 @@ Prerequisites
 Setup development environment
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-```bash
-pre-commit install
-poetry install
-```
+.. code-block:: bash
+
+    pre-commit install
+    poetry install
+
 
 Run tests
 ^^^^^^^^^
 
-```bash
-docker-compose up -d
-poetry run pytest
+.. code-block:: bash
+
+    docker-compose up -d
+    poetry run pytest
