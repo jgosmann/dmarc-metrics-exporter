@@ -108,8 +108,8 @@ The following configuration options are available:
   * ``done`` (string, default ``"Archive"``): IMAP mailbox that successfully processed reports are moved to.
   * ``error``: (string, default ``"Invalid"``): IMAP mailbox that emails are moved to that could not be processed.
 
-* ``metrics_db`` (string, default ``"/var/lib/dmarc-metrics-exporter/metrics.db"``):
-  File to persist accumulated metrics information in.
+* ``storage_path`` (string, default ``"/var/lib/dmarc-metrics-exporter"``):
+  Directory to persist data in that has to persisted between restarts.
 * ``poll_interval_seconds`` (number, default ``60``): How often to poll the IMAP server in seconds.
 * ``deduplication_max_seconds`` (number, default ``604800`` which is 7 days): How long individual report IDs will be remembered to avoid counting double delivered reports twice.
 

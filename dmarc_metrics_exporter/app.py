@@ -3,6 +3,7 @@ import asyncio
 import json
 from asyncio import CancelledError
 from email.message import EmailMessage
+from pathlib import Path
 from typing import Any, Callable, Sequence, Tuple
 
 from dmarc_metrics_exporter.deserialization import (
@@ -32,6 +33,9 @@ def main(argv: Sequence[str]):
 
     configuration = json.load(args.configuration)
     args.configuration.close()
+    storage_path = Path(
+        configuration.get("storage_path", "/var/lib/dmarc-metrics-exporter")
+    )
     app = App(
         prometheus_addr=(
             configuration.get("listen_addr", "127.0.0.1"),
@@ -42,20 +46,18 @@ def main(argv: Sequence[str]):
             folders=QueueFolders(**configuration.get("folders", {})),
             poll_interval_seconds=configuration.get("poll_interval_seconds", 60),
         ),
-        metrics_persister=MetricsPersister(
-            configuration.get(
-                "metrics_db", "/var/lib/dmarc-metrics-exporter/metrics.db"
-            )
-        ),
+        metrics_persister=MetricsPersister(storage_path / "metrics.db"),
         deduplication_max_seconds=configuration.get(
             "deduplication_max_seconds", 7 * 24 * 60 * 60
         ),
+        seen_reports_db=storage_path / "seen-reports.db",
     )
 
     asyncio.run(app.run())
 
 
 class App:
+    # pylint: disable=too-many-instance-attributes
     _seen_reports: ExpiringSet[str]
 
     def __init__(
@@ -67,6 +69,7 @@ class App:
         exporter_cls: Callable[[DmarcMetricsCollection], Any] = PrometheusExporter,
         autosave_interval_seconds: float = 60,
         deduplication_max_seconds: float = 7 * 24 * 60 * 60,
+        seen_reports_db: Path = None
     ):
         self.prometheus_addr = prometheus_addr
         self.exporter = exporter_cls(DmarcMetricsCollection())
@@ -74,7 +77,13 @@ class App:
         self.exporter_cls = exporter_cls
         self.metrics_persister = metrics_persister
         self.autosave_interval_seconds = autosave_interval_seconds
-        self._seen_reports = ExpiringSet(deduplication_max_seconds)
+        self.seen_reports_db = seen_reports_db
+        if seen_reports_db and seen_reports_db.exists():
+            self._seen_reports = ExpiringSet.load(
+                seen_reports_db, deduplication_max_seconds
+            )
+        else:
+            self._seen_reports = ExpiringSet(deduplication_max_seconds)
 
     async def run(self):
         self.exporter = self.exporter_cls(self.metrics_persister.load())
@@ -94,6 +103,8 @@ class App:
     def _save_metrics(self):
         with self.exporter.get_metrics() as metrics:
             self.metrics_persister.save(metrics)
+        if self.seen_reports_db:
+            self._seen_reports.persist(self.seen_reports_db)
 
     async def process_email(self, msg: EmailMessage):
         for report in get_aggregate_report_from_email(msg):

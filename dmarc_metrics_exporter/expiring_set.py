@@ -1,12 +1,17 @@
+import pickle
 import time
 from collections import deque
 from collections.abc import Container
-from typing import Callable, Deque, Generic, Set, Tuple, TypeVar
+from pathlib import Path
+from typing import Callable, Deque, Generic, Set, Tuple, TypeVar, Union
 
 T = TypeVar("T")
 
 
 class ExpiringSet(Generic[T], Container):
+    __PICKLE_PROTOCOL = 4
+    __VERSION = 0
+
     _items: Set[T]
     _expiry_queue: Deque[Tuple[float, T]]
 
@@ -32,3 +37,33 @@ class ExpiringSet(Generic[T], Container):
         ):
             _, item = self._expiry_queue.popleft()
             self._items.remove(item)
+
+    def persist(self, path: Union[Path, str]):
+        self._expire()
+        with open(path, "wb") as f:
+            pickle.dump(
+                {"version": self.__VERSION, "expiry_queue": self._expiry_queue},
+                f,
+                self.__PICKLE_PROTOCOL,
+            )
+
+    @classmethod
+    def load(
+        cls,
+        path: Union[Path, str],
+        ttl: float,
+        time_fn: Callable[[], float] = time.time,
+    ) -> "ExpiringSet[T]":
+        # pylint: disable=protected-access
+        reconstructed = ExpiringSet[T](ttl, time_fn)
+        with open(path, "rb") as f:
+            data = pickle.load(f)
+            if data["version"] != cls.__VERSION:
+                raise RuntimeError("Unsupported version.")
+            reconstructed._expiry_queue.extend(
+                (timestamp, item)
+                for timestamp, item in data["expiry_queue"]
+                if time_fn() - timestamp < ttl
+            )
+            reconstructed._items.update(item for _, item in reconstructed._expiry_queue)
+        return reconstructed
