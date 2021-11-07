@@ -12,6 +12,7 @@
         "done": "{{ folder_done }}",
         "error": "{{ folder_error }}"
     },
-    "metrics_db": "/var/lib/dmarc-metrics-exporter/metrics.db",
-    "poll_interval_seconds": {{ poll_interval_seconds }}
+    "storage_path": "/var/lib/dmarc-metrics-exporter",
+    "poll_interval_seconds": {{ poll_interval_seconds }},
+    "deduplication_max_seconds": {{ deduplication_max_seconds }}
 }

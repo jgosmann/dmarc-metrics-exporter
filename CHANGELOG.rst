@@ -6,6 +6,33 @@ All notable changes to this project will be documented in this file.
 The format is based on `Keep a Changelog <https://keepachangelog.com/en/1.0.0/>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
 
+[0.4.0] - 2021-??-??
+--------------------
+
+Changed
+^^^^^^^
+
+* The `metrics_db` configuration option has been replaced with the `storage_path`
+  configuration option. To migrate your existing setup:
+  1. Ensure that your `metrics_db` file is called `metrics.db`.
+  2. Ensure that the directory containing the `metrics.db` file is writable by
+     the dmarc-metrics-exporter.
+  2. Remove the `metrics_db` setting from the configuration file.
+  3. Add a new `storage_path` setting pointing to the directory containing the
+     `metrics.db` file.
+
+Added
+^^^^^
+
+* Duplicate reports will now only be counted once. The duration for which report
+  IDs are stored to detect duplicates can be configured with the
+  `deduplication_max_seconds` configuration setting. The default is one week.
+* Added a Dockerfile to the repository to build a Docker image with
+  dmarc-metrics-exporter. [Images for official releases will be published on
+  Docker Hub.](https://hub.docker.com/repository/docker/jgosmann/dmarc-metrics-exporter)
+* Support for Python 3.9.
+
+
 [0.3.0] - 2021-03-01
 --------------------
 
