@@ -1,6 +1,6 @@
-.. image:: https://app.travis-ci.com/jgosmann/dmarc-metrics-exporter.svg?branch=main
-  :target: https://app.travis-ci.com/jgosmann/dmarc-metrics-exporter
-  :alt: Travis-CI build
+.. image:: https://github.com/jgosmann/dmarc-metrics-exporter/actions/workflows/ci.yml/badge.svg
+  :target: https://github.com/jgosmann/dmarc-metrics-exporter/actions/workflows/ci.yml
+  :alt: CI and release pipeline
 .. image:: https://codecov.io/gh/jgosmann/dmarc-metrics-exporter/branch/main/graph/badge.svg?token=O4M05YWNQK
   :target: https://codecov.io/gh/jgosmann/dmarc-metrics-exporter
   :alt: Codecov coverage
@@ -93,7 +93,7 @@ An example configuration file is provided in this repository in
 
 The following configuration options are available:
 
-* ``listen_addr`` (string, default ``"127.0.0.1"``): Listen address for the HTTP endpoint.
+* ``listen_addr`` (string, default ``"127.0.0.1"``): Listen address for the HTTP endpoint. Use ``"0.0.0.0"`` if running in a dockerized environment.
 * ``port`` (number, default ``9797``): Port to listen on for the HTTP endpoint.
 * ``imap`` (object, required): IMAP configuration to check for aggregate reports.
 
@@ -153,6 +153,77 @@ To have dmarc-metrics-exporter start on system boot:
 
     systemctl enable dmarc-metrics-exporter
 
+Docker
+^^^^^^
+
+A new docker image is build for each release
+with GitHub Actions as described in this yaml-file:
+``.github/workflows/docker-publish.yml``.
+
+Note that you should configure the `listen_addr` to `0.0.0.0` to be able to
+access the metrics exporter from outside the container.
+
+Example docker-compose file:
+
+.. code-block:: yml
+
+    version: "3"
+
+    services:
+
+      dmarc-metrics-exporter:
+        # source: https://github.com/jamborjan/dmarc-metrics-exporter/pkgs/container/dmarc-metrics-exporter
+        container_name: dmarc-metrics-exporter
+        hostname: dmarc-metrics-exporter
+        image: jgosmann/dmarc-metrics-exporter:0.3.0
+        restart: unless-stopped
+        user: 1000:1000 #PUID=1000:PGID=1000
+        expose:
+          - 9797
+        volumes:
+          - '/host/folder/dmarc-metrics-exporter.json:/etc/dmarc-metrics-exporter.json'
+          - '/host/folder/dmarc-metrics-exporter/metrics:/var/lib/dmarc-metrics-exporter:rw'
+        logging:
+          driver: "json-file"
+          options:
+            tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+        networks:
+          - YourDockerLan
+
+    # $ docker network create -d bridge --attachable YourDockerLan
+    networks:
+      YourDockerLan:
+        external:
+          name: YourDockerLan
+
+Prometheus
+^^^^^^^^^^
+
+Example prometheus config file:
+
+.. code-block:: yml
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+
+    rule_files:
+
+    scrape_configs:
+
+      - job_name: 'dmarc-metrics-exporter'
+        static_configs:
+          - targets: ['dmarc-metrics-exporter:9797']
+
+Hints
+^^^^^
+You should not use your normal email and password credentials for the dmarc-metrics-exporter. If you are not able to create a dedicated service account email account, you should use an app password.
+
+Hints for Microsoft Exchange Online
+- App passwords are available when you are using Multi Factor Authentication (MFA). [Manage app passwords for two-step verification](https://account.activedirectory.windowsazure.com/AppPasswords.aspx)
+- If you don't see the app passwords option or get an error, [check if MFA is enabled](https://account.activedirectory.windowsazure.com/UserManagement/MultifactorVerification.aspx) for the user.
+- If you still don't see the app passwords option, [check if app passwords are allowed in your organization](https://docs.microsoft.com/en-us/azure/active-directory/authentication/howto-mfa-app-passwords#allow-users-to-create-app-passwords)
+- Finally, [ensure that IMAP is enabled for the user](https://docs.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/pop3-and-imap4/enable-or-disable-pop3-or-imap4-access).
+
 
 Development
 -----------
@@ -179,4 +250,3 @@ Run tests
 ```bash
 docker-compose up -d
 poetry run pytest
-```
