@@ -1,6 +1,6 @@
-.. image:: https://app.travis-ci.com/jgosmann/dmarc-metrics-exporter.svg?branch=main
-  :target: https://app.travis-ci.com/jgosmann/dmarc-metrics-exporter
-  :alt: Travis-CI build
+.. image:: https://github.com/jgosmann/dmarc-metrics-exporter/actions/workflows/ci.yml/badge.svg
+  :target: https://github.com/jgosmann/dmarc-metrics-exporter/actions/workflows/ci.yml
+  :alt: CI and release pipeline
 .. image:: https://codecov.io/gh/jgosmann/dmarc-metrics-exporter/branch/main/graph/badge.svg?token=O4M05YWNQK
   :target: https://codecov.io/gh/jgosmann/dmarc-metrics-exporter
   :alt: Codecov coverage
