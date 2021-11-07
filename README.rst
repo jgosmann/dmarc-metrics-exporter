@@ -111,6 +111,7 @@ The following configuration options are available:
 * ``metrics_db`` (string, default ``"/var/lib/dmarc-metrics-exporter/metrics.db"``):
   File to persist accumulated metrics information in.
 * ``poll_interval_seconds`` (number, default ``60``): How often to poll the IMAP server in seconds.
+* ``deduplication_max_seconds`` (number, default ``604800`` which is 7 days): How long individual report IDs will be remembered to avoid counting double delivered reports twice.
 
 Usage
 -----

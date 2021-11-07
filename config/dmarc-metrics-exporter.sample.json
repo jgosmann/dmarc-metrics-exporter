@@ -13,5 +13,6 @@
         "error": "Invalid"
     },
     "metrics_db": "/var/lib/dmarc-metrics-exporter/metrics.db",
-    "poll_interval_seconds": 60
+    "poll_interval_seconds": 60,
+    "deduplication_max_seconds": 604800
 }

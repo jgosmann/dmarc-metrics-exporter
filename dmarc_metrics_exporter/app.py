@@ -10,6 +10,7 @@ from dmarc_metrics_exporter.deserialization import (
     get_aggregate_report_from_email,
 )
 from dmarc_metrics_exporter.dmarc_metrics import DmarcMetricsCollection
+from dmarc_metrics_exporter.expiring_set import ExpiringSet
 from dmarc_metrics_exporter.imap_queue import ConnectionConfig, ImapQueue, QueueFolders
 from dmarc_metrics_exporter.metrics_persister import MetricsPersister
 from dmarc_metrics_exporter.prometheus_exporter import PrometheusExporter
@@ -46,12 +47,17 @@ def main(argv: Sequence[str]):
                 "metrics_db", "/var/lib/dmarc-metrics-exporter/metrics.db"
             )
         ),
+        deduplication_max_seconds=configuration.get(
+            "deduplication_max_seconds", 7 * 24 * 60 * 60
+        ),
     )
 
     asyncio.run(app.run())
 
 
 class App:
+    _seen_reports: ExpiringSet[str]
+
     def __init__(
         self,
         *,
@@ -60,6 +66,7 @@ class App:
         metrics_persister: MetricsPersister,
         exporter_cls: Callable[[DmarcMetricsCollection], Any] = PrometheusExporter,
         autosave_interval_seconds: float = 60,
+        deduplication_max_seconds: float = 7 * 24 * 60 * 60,
     ):
         self.prometheus_addr = prometheus_addr
         self.exporter = exporter_cls(DmarcMetricsCollection())
@@ -67,6 +74,7 @@ class App:
         self.exporter_cls = exporter_cls
         self.metrics_persister = metrics_persister
         self.autosave_interval_seconds = autosave_interval_seconds
+        self._seen_reports = ExpiringSet(deduplication_max_seconds)
 
     async def run(self):
         self.exporter = self.exporter_cls(self.metrics_persister.load())
@@ -89,6 +97,12 @@ class App:
 
     async def process_email(self, msg: EmailMessage):
         for report in get_aggregate_report_from_email(msg):
+            report_id = report.report_metadata and report.report_metadata.report_id
+            if report_id:
+                if report_id in self._seen_reports:
+                    continue
+                self._seen_reports.add(report_id)
+
             for event in convert_to_events(report):
                 with self.exporter.get_metrics() as metrics:
                     metrics.update(event)
