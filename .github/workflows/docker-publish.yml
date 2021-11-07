@@ -6,9 +6,13 @@ name: Docker
 # documentation.
 
 on:
-  push:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["CI and release pipeline"]
     # Publish semver tags as releases.
     tags: [ 'v*.*.*' ]
+    types:
+      - completed
 
 env:
   # github.repository as <account>/<repo>
@@ -19,6 +23,7 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflw_run.conclusion == 'success' }}
     permissions:
       contents: read
       packages: write
