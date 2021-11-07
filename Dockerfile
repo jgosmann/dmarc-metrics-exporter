@@ -1,8 +1,9 @@
 FROM python:3.7-slim AS builder
+ARG version
 
 # install python package in venv
 RUN python3 -m venv venv && \
-    venv/bin/pip3 --disable-pip-version-check install dmarc-metrics-exporter
+    venv/bin/pip3 --disable-pip-version-check install dmarc-metrics-exporter==${version}
 
 FROM python:3.7-alpine AS runner
 
