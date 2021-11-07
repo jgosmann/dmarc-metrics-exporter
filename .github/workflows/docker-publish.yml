@@ -24,6 +24,10 @@ jobs:
       packages: write
 
     steps:
+      - name: Get the version
+        id: version
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/v}
+
       - name: Checkout repository
         uses: actions/checkout@v2
 
@@ -52,3 +56,4 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: ["version=${{ steps.version.VERSION }}"]
