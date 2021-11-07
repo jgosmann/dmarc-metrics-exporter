@@ -217,13 +217,21 @@ Example prometheus config file:
 
 Hints
 ^^^^^
-You should not use your normal email and password credentials for the dmarc-metrics-exporter. If you are not able to create a dedicated service account email account, you should use an app password.
 
-Hints for Microsoft Exchange Online
-- App passwords are available when you are using Multi Factor Authentication (MFA). [Manage app passwords for two-step verification](https://account.activedirectory.windowsazure.com/AppPasswords.aspx)
-- If you don't see the app passwords option or get an error, [check if MFA is enabled](https://account.activedirectory.windowsazure.com/UserManagement/MultifactorVerification.aspx) for the user.
-- If you still don't see the app passwords option, [check if app passwords are allowed in your organization](https://docs.microsoft.com/en-us/azure/active-directory/authentication/howto-mfa-app-passwords#allow-users-to-create-app-passwords)
-- Finally, [ensure that IMAP is enabled for the user](https://docs.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/pop3-and-imap4/enable-or-disable-pop3-or-imap4-access).
+You should not use your normal email and password credentials for the dmarc-metrics-exporter.
+If you are not able to create a dedicated service account email account, you should use an app password.
+
+Microsoft Exchange Online
+"""""""""""""""""""""""""
+
+* App passwords are available when you are using Multi Factor Authentication (MFA).
+  `Manage app passwords for two-step verification <https://account.activedirectory.windowsazure.com/AppPasswords.aspx>`_
+* If you don't see the app passwords option or get an error,
+  `check if MFA is enabled <https://account.activedirectory.windowsazure.com/UserManagement/MultifactorVerification.aspx>`_
+  for the user.
+* If you still don't see the app passwords option,
+  `check if app passwords are allowed in your organization <https://docs.microsoft.com/en-us/azure/active-directory/authentication/howto-mfa-app-passwords#allow-users-to-create-app-passwords>`_
+* Finally, `ensure that IMAP is enabled for the user <https://docs.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/pop3-and-imap4/enable-or-disable-pop3-or-imap4-access>`_.
 
 
 Development
