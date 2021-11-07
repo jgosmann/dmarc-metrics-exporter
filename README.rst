@@ -223,3 +223,30 @@ Hints for Microsoft Exchange Online
 - If you don't see the app passwords option or get an error, [check if MFA is enabled](https://account.activedirectory.windowsazure.com/UserManagement/MultifactorVerification.aspx) for the user.
 - If you still don't see the app passwords option, [check if app passwords are allowed in your organization](https://docs.microsoft.com/en-us/azure/active-directory/authentication/howto-mfa-app-passwords#allow-users-to-create-app-passwords)
 - Finally, [ensure that IMAP is enabled for the user](https://docs.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/pop3-and-imap4/enable-or-disable-pop3-or-imap4-access).
+
+
+Development
+-----------
+
+Prerequisites
+^^^^^^^^^^^^^
+
+* `Python <https://www.python.org/>`_
+* `pre-commit <https://pre-commit.com/>`_
+* `Poetry <https://python-poetry.org/>`_
+* `Docker <https://www.docker.com/>`_
+
+Setup development environment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+```bash
+pre-commit install
+poetry install
+```
+
+Run tests
+^^^^^^^^^
+
+```bash
+docker-compose up -d
+poetry run pytest

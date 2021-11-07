@@ -5,13 +5,7 @@ import pytest
 
 from dmarc_metrics_exporter.imap_queue import ImapClient, ImapQueue
 
-from .conftest import (
-    run_greenmail,
-    send_email,
-    try_until_success,
-    verify_email_delivered,
-    verify_imap_available,
-)
+from .conftest import send_email, try_until_success, verify_email_delivered
 
 
 def create_dummy_email(to: str):
@@ -67,7 +61,6 @@ async def test_successful_processing_of_incoming_queue_message(greenmail):
         assert_emails_equal(queue_msg, msg)
 
     # When
-    await try_until_success(lambda: verify_imap_available(greenmail.imap))
     queue = ImapQueue(connection=greenmail.imap, poll_interval_seconds=0.1)
     queue.consume(handler)
 
@@ -118,7 +111,7 @@ async def test_error_handling_when_processing_queue_message(greenmail):
 
 
 @pytest.mark.asyncio
-async def test_reconnects_if_imap_connection_is_lost(docker_client):
+async def test_reconnects_if_imap_connection_is_lost(greenmail):
     is_done = asyncio.Event()
 
     async def handler(queue_msg: EmailMessage, is_done=is_done):
@@ -127,23 +120,22 @@ async def test_reconnects_if_imap_connection_is_lost(docker_client):
 
     queue = None
     try:
-        with run_greenmail(docker_client) as greenmail:
-            await try_until_success(lambda: verify_imap_available(greenmail.imap))
-            queue = ImapQueue(
-                connection=greenmail.imap,
-                poll_interval_seconds=0.1,
-                timeout_seconds=0.5,
-            )
-            queue.consume(handler)
-            msg = create_dummy_email(greenmail.imap.username)
-            await try_until_success(lambda: send_email(msg, greenmail.smtp))
-            await asyncio.wait_for(is_done.wait(), 10)
+        queue = ImapQueue(
+            connection=greenmail.imap,
+            poll_interval_seconds=0.1,
+            timeout_seconds=0.5,
+        )
+        queue.consume(handler)
+        msg = create_dummy_email(greenmail.imap.username)
+        await try_until_success(lambda: send_email(msg, greenmail.smtp))
+        await asyncio.wait_for(is_done.wait(), 10)
 
         is_done.clear()
-        with run_greenmail(docker_client) as greenmail:
-            msg = create_dummy_email(greenmail.imap.username)
-            await try_until_success(lambda: send_email(msg, greenmail.smtp))
-            await asyncio.wait_for(is_done.wait(), 10)
+        await greenmail.restart()
+
+        msg = create_dummy_email(greenmail.imap.username)
+        await try_until_success(lambda: send_email(msg, greenmail.smtp))
+        await asyncio.wait_for(is_done.wait(), 10)
     finally:
         if queue is not None:
             await queue.stop_consumer()

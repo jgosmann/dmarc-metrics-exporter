@@ -9,7 +9,7 @@ import pytest
 from prometheus_client.parser import text_string_to_metric_families
 from prometheus_client.samples import Sample
 
-from .conftest import send_email, try_until_success, verify_imap_available
+from .conftest import send_email, try_until_success
 from .sample_emails import create_email_with_zip_attachment
 
 
@@ -40,7 +40,6 @@ async def test_successful_processing_of_existing_queue_message(greenmail, tmp_pa
     # Given
     msg = create_email_with_zip_attachment(greenmail.imap.username)
     await try_until_success(lambda: send_email(msg, greenmail.smtp))
-    await try_until_success(lambda: verify_imap_available(greenmail.imap))
 
     config = {
         "listen_addr": "127.0.0.1",
@@ -50,7 +49,7 @@ async def test_successful_processing_of_existing_queue_message(greenmail, tmp_pa
         "metrics_db": str(tmp_path / "metrics.db"),
     }
     config_path = tmp_path / "dmarc-metrics-exporter.conf"
-    with open(config_path, "w") as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         json.dump(config, f)
 
     # When

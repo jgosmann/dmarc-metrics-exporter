@@ -1,43 +1,44 @@
 [tool.poetry]
-name = "dmarc-metrics-exporter"
-version = "0.3.0"
-description = "Export Prometheus metrics from DMARC reports."
 authors = ["Jan Gosmann <jan@hyper-world.de>"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Framework :: AsyncIO",
+  "Intended Audience :: System Administrators",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Topic :: Communications :: Email",
+  "Topic :: System :: Monitoring",
+]
+description = "Export Prometheus metrics from DMARC reports."
+keywords = ["DMARC", "DKIM", "SPF", "Prometheus"]
 license = "MIT"
+name = "dmarc-metrics-exporter"
 readme = "README.rst"
 repository = "https://github.com/jgosmann/dmarc-metrics-exporter/"
-keywords = ["DMARC", "DKIM", "SPF", "Prometheus"]
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Framework :: AsyncIO",
-    "Intended Audience :: System Administrators",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Topic :: Communications :: Email",
-    "Topic :: System :: Monitoring"
-]
+version = "0.3.0"
 
 [tool.poetry.dependencies]
-python = "^3.7,<3.10"
-prometheus_client = "^0.11.0"
-xsdata = "^21.9"
-uvicorn = {extras = ["standard"], version = "^0.15.0"}
 aioimaplib = "^0.9.0"
 dataclasses-serialization = "^1.3.1"
+prometheus_client = "^0.11.0"
+python = "^3.7,<3.10"
+uvicorn = {extras = ["standard"], version = "^0.15.0"}
+xsdata = "^21.9"
 
 [tool.poetry.dev-dependencies]
-black = "^21.9b0"
-pytest = "^6.2.1"
-pylint = "^2.6.0"
-mypy = "^0.910"
-isort = "^5.6.4"
-pytest-asyncio = "^0.16.0"
 aiohttp = "^3.7.3"
+black = "^21.9b0"
 docker = "^5.0.3"
-pytest-cov = "^3.0.0"
+isort = "^5.6.4"
+mypy = "^0.910"
+pylint = "^2.6.0"
+pytest = "^6.2.1"
+pytest-asyncio = "^0.16.0"
+requests = "^2.26.0"
+types-requests = "^2.25.11"
 
 [tool.black]
 exclude = '''
@@ -57,11 +58,10 @@ exclude = '''
 '''
 
 [tool.isort]
-multi_line_output = 3
-include_trailing_comma = true
 force_grid_wrap = 0
-use_parentheses = true
+include_trailing_comma = true
 line_length = 88
+multi_line_output = 3
 skip = [
   '.bzr',
   '.direnv',
@@ -83,12 +83,13 @@ skip = [
   'dmarc_metrics_exporter/model/__init__.py',
   'dmarc_metrics_exporter/model/dmarc_aggregate_report.py',
 ]
+use_parentheses = true
 
 [tool.pytest.ini_options]
-filterwarnings=[
-    "ignore::DeprecationWarning:aioimaplib"
+filterwarnings = [
+  "ignore::DeprecationWarning:aioimaplib",
 ]
 
 [build-system]
-requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
+requires = ["poetry>=0.12"]
