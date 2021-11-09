@@ -13,7 +13,9 @@ from dmarc_metrics_exporter.dmarc_metrics import DmarcMetricsCollection
 class Server:
     def __init__(self, exporter: "PrometheusExporter", listen_addr: str, port: int):
         self.exporter = exporter
-        config = uvicorn.Config(make_asgi_app(), host=listen_addr, port=port)
+        config = uvicorn.Config(
+            make_asgi_app(), host=listen_addr, port=port, access_log=False
+        )
         self.server = uvicorn.Server(config)
         self.host = config.host
         self.port = port

@@ -20,6 +20,9 @@ Changed
   2. Remove the `metrics_db` setting from the configuration file.
   3. Add a new `storage_path` setting pointing to the directory containing the
      `metrics.db` file.
+* Disabled the access log. It clutters the log output with barely relevant
+  messages (there is only a single page being served and it will be polled
+  regularly by Prometheus).
 
 Added
 ^^^^^
