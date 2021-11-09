@@ -58,7 +58,7 @@ def main(argv: Sequence[str]):
 
 class App:
     # pylint: disable=too-many-instance-attributes
-    _seen_reports: ExpiringSet[str]
+    _seen_reports: ExpiringSet[Tuple[str, str]]
 
     def __init__(
         self,
@@ -108,11 +108,12 @@ class App:
 
     async def process_email(self, msg: EmailMessage):
         for report in get_aggregate_report_from_email(msg):
+            org_name = report.report_metadata and report.report_metadata.org_name
             report_id = report.report_metadata and report.report_metadata.report_id
-            if report_id:
-                if report_id in self._seen_reports:
+            if org_name and report_id:
+                if (org_name, report_id) in self._seen_reports:
                     continue
-                self._seen_reports.add(report_id)
+                self._seen_reports.add((org_name, report_id))
 
             for event in convert_to_events(report):
                 with self.exporter.get_metrics() as metrics:
