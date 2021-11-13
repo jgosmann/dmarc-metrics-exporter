@@ -7,6 +7,7 @@ listen_port: 9797
 imap_host: "localhost"
 imap_port: 993
 poll_interval_seconds: 60
+deduplication_max_seconds: 604800
 
 folder_inbox: "INBOX"
 folder_done: "Archive"
