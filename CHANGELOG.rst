@@ -27,6 +27,8 @@ Changed
 Added
 ^^^^^
 
+* A log message will be produced for emails from which no report could be
+  extracted.
 * Duplicate reports will now only be counted once. The duration for which report
   IDs are stored to detect duplicates can be configured with the
   `deduplication_max_seconds` configuration setting. The default is one week.
