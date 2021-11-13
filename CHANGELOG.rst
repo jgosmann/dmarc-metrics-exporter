@@ -27,6 +27,7 @@ Changed
 Added
 ^^^^^
 
+* Support for reports sent in gzip format.
 * A log message will be produced for emails from which no report could be
   extracted.
 * Duplicate reports will now only be counted once. The duration for which report

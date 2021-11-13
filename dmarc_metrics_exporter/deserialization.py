@@ -1,3 +1,4 @@
+import gzip
 import io
 import logging
 from email.contentmanager import raw_data_manager
@@ -23,6 +24,10 @@ from dmarc_metrics_exporter.model.dmarc_aggregate_report import (
 )
 
 
+def handle_application_gzip(gzip_bytes: bytes) -> Generator[str, None, None]:
+    yield gzip.decompress(gzip_bytes).decode("utf-8")
+
+
 def handle_application_zip(zip_bytes: bytes) -> Generator[str, None, None]:
     with ZipFile(io.BytesIO(zip_bytes), "r") as zip_file:
         for name in zip_file.namelist():
@@ -35,6 +40,7 @@ def handle_text_xml(content: str) -> Generator[str, None, None]:
 
 
 content_type_handlers: Mapping[str, Callable[..., Generator[str, None, None]]] = {
+    "application/gzip": handle_application_gzip,
     "application/zip": handle_application_zip,
     "text/xml": handle_text_xml,
 }
