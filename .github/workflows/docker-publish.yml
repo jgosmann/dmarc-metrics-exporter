@@ -6,17 +6,16 @@ name: Docker
 # documentation.
 
 on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Published version on PyPI to build a Docker image for.'
+        required: true
   workflow_dispatch:
     inputs:
       version:
         description: 'Published version on PyPI to build a Docker image for.'
         required: true
-  workflow_run:
-    workflows: ["CI and release pipeline"]
-    # Publish semver tags as releases.
-    tags: [ 'v*.*.*' ]
-    types:
-      - completed
 
 env:
   # github.repository as <account>/<repo>
@@ -27,16 +26,11 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     permissions:
       contents: read
       packages: write
 
     steps:
-      - name: Get the version
-        id: version
-        run: if [ -z '${{ github.event.inputs.version }}' ]; then echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/v}; else echo ::set-output name=VERSION::${{ github.event.inputs.version }}; fi
-
       - name: Checkout repository
         uses: actions/checkout@v2
 
@@ -63,6 +57,6 @@ jobs:
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
-          tags: jgosmann/dmarc-metrics-exporter:${{ steps.version.outputs.VERSION }}
+          tags: jgosmann/dmarc-metrics-exporter:${{ github.event.inputs.version }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: "version=${{ steps.version.outputs.VERSION }}"
+          build-args: "version=${{ github.event.inputs.version }}"
