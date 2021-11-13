@@ -12,6 +12,11 @@ on:
         description: 'Git reference to extract version from  to build a Docker image for.'
         required: true
         type: string
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
   workflow_dispatch:
     inputs:
       version:
@@ -34,7 +39,7 @@ jobs:
     steps:
       - name: Set version from ref
         id: version
-        run: REF=${{ github.event.inputs.version }}; TAG=${REF#refs/*/}; echo ::set-output name=version::${TAG#v}
+        run: REF=${{ inputs.version }}${{ github.event.inputs.version }}; TAG=${REF#refs/*/}; echo ::set-output name=version::${TAG#v}
 
       - name: Checkout repository
         uses: actions/checkout@v2
