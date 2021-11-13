@@ -1,5 +1,5 @@
 name: Setup project
-description: Setup Plato project with poetry
+description: Setup project with poetry
 runs:
   using: composite
   steps:
