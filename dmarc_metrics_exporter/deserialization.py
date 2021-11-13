@@ -1,4 +1,5 @@
 import io
+import logging
 from email.contentmanager import raw_data_manager
 from email.message import EmailMessage
 from typing import Generator, Optional
@@ -33,14 +34,23 @@ def get_aggregate_report_from_email(
     msg: EmailMessage,
 ) -> Generator[Feedback, None, None]:
     parser = XmlParser(context=XmlContext())
+    has_found_a_report = False
     for part in msg.walk():
         if part.get_content_type() == "text/xml":
             content = raw_data_manager.get_content(part)
+            has_found_a_report = True
             yield parser.from_string(content, Feedback)
         elif part.get_content_type() == "application/zip":
             content = raw_data_manager.get_content(part)
+            has_found_a_report = True
             for payload in _get_payloads_from_zip(content):
                 yield parser.from_string(payload, Feedback)
+    if not has_found_a_report:
+        logging.warning(
+            "Failed to extract report from email by %s with subject '%s'.",
+            msg.get("from", "<from missing>"),
+            msg.get("subject", "<no subject>"),
+        )
 
 
 def _map_disposition(disposition: Optional[DispositionType]) -> Disposition:
