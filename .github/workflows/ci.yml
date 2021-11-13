@@ -124,3 +124,9 @@ jobs:
           tag_name: v${{ steps.version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker-image:
+    needs: [release]
+    uses: "jgosmann/dmarc-metrics-exporter/.github/workflows/docker-publish.yml@main"
+    with:
+      version: ${{ github.ref }}
