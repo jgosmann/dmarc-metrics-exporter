@@ -130,5 +130,6 @@ jobs:
     uses: "jgosmann/dmarc-metrics-exporter/.github/workflows/docker-publish.yml@main"
     with:
       version: ${{ github.ref }}
+    secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
