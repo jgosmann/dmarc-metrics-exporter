@@ -216,6 +216,16 @@ Example prometheus config file:
         static_configs:
           - targets: ['dmarc-metrics-exporter:9797']
 
+Grafana
+^^^^^^^
+
+An example configuration file is provided in this repository in
+``config/dmarc-metrics-exporter.grafana.sample.json``. This example dashboard displays the collected metrics as shown in the screenshot below. 
+
+.. figure:: config/dmarc-metrics-exporter.grafana.sample.png
+
+   Example grafana dashboard
+
 Hints
 ^^^^^
 
