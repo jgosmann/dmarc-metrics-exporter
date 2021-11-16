@@ -660,12 +660,12 @@
         "list": []
     },
     "time": {
-        "from": "now-24h",
+        "from": "now-30d",
         "to": "now"
     },
     "timepicker": {},
     "timezone": "",
     "title": "dmarc dashboard",
     "uid": "dWAaq-cnk",
-    "version": 9
+    "version": 11
 }
