@@ -25,6 +25,248 @@
                     "color": {
                         "mode": "thresholds"
                     },
+                    "decimals": 0,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            }
+                        ]
+                    },
+                    "unit": "none"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 24,
+                "x": 0,
+                "y": 0
+            },
+            "id": 8,
+            "interval": "1d",
+            "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "text": {},
+                "textMode": "auto"
+            },
+            "pluginVersion": "7.5.6",
+            "targets": [
+                {
+                    "exemplar": true,
+                    "expr": "sum(increase(dmarc_total[$__range]))",
+                    "interval": "",
+                    "legendFormat": "",
+                    "refId": "A"
+                }
+            ],
+            "title": "Total",
+            "type": "stat"
+        },
+        {
+            "datasource": null,
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 0,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "percentage",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            }
+                        ]
+                    },
+                    "unit": "none"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 8,
+                "x": 0,
+                "y": 8
+            },
+            "id": 11,
+            "interval": "1d",
+            "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                    "calcs": [
+                        "mean"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "text": {},
+                "textMode": "value"
+            },
+            "pluginVersion": "7.5.6",
+            "targets": [
+                {
+                    "exemplar": true,
+                    "expr": "sum(increase(dmarc_compliant_total[$__range]))",
+                    "interval": "",
+                    "legendFormat": "",
+                    "refId": "A"
+                }
+            ],
+            "title": "# compliant",
+            "type": "stat"
+        },
+        {
+            "datasource": null,
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 0,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "red",
+                                "value": 0.0001
+                            }
+                        ]
+                    },
+                    "unit": "none"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 8,
+                "x": 8,
+                "y": 8
+            },
+            "id": 13,
+            "interval": "1d",
+            "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "text": {},
+                "textMode": "auto"
+            },
+            "pluginVersion": "7.5.6",
+            "targets": [
+                {
+                    "exemplar": true,
+                    "expr": "sum(increase(dmarc_reject_total[$__range]))",
+                    "interval": "",
+                    "legendFormat": "",
+                    "refId": "A"
+                }
+            ],
+            "timeFrom": null,
+            "title": "# reject",
+            "type": "stat"
+        },
+        {
+            "datasource": null,
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 0,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "red",
+                                "value": 0.0001
+                            }
+                        ]
+                    },
+                    "unit": "none"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 8,
+                "x": 16,
+                "y": 8
+            },
+            "id": 10,
+            "interval": "1d",
+            "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "text": {},
+                "textMode": "auto"
+            },
+            "pluginVersion": "7.5.6",
+            "targets": [
+                {
+                    "exemplar": true,
+                    "expr": "sum(increase(dmarc_quarantine_total[$__range]))",
+                    "interval": "",
+                    "legendFormat": "",
+                    "refId": "A"
+                }
+            ],
+            "timeFrom": null,
+            "title": "# quarantine",
+            "type": "stat"
+        },
+        {
+            "datasource": null,
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
                     "mappings": [],
                     "thresholds": {
                         "mode": "percentage",
@@ -47,9 +289,10 @@
                 "h": 8,
                 "w": 8,
                 "x": 0,
-                "y": 0
+                "y": 16
             },
             "id": 6,
+            "interval": "1d",
             "options": {
                 "colorMode": "value",
                 "graphMode": "none",
@@ -69,7 +312,7 @@
             "targets": [
                 {
                     "exemplar": true,
-                    "expr": "sum(dmarc_compliant_total)/sum(dmarc_total)",
+                    "expr": "sum(increase(dmarc_compliant_total[$__range]))/sum(increase(dmarc_total[$__range]))",
                     "interval": "",
                     "legendFormat": "",
                     "refId": "A"
@@ -107,9 +350,10 @@
                 "h": 8,
                 "w": 8,
                 "x": 8,
-                "y": 0
+                "y": 16
             },
-            "id": 8,
+            "id": 12,
+            "interval": "1d",
             "options": {
                 "colorMode": "value",
                 "graphMode": "none",
@@ -129,13 +373,14 @@
             "targets": [
                 {
                     "exemplar": true,
-                    "expr": "sum(dmarc_reject_total)/sum(dmarc_total)",
+                    "expr": "sum(increase(dmarc_reject_total[$__range]))/sum(increase(dmarc_total[$__range]))",
                     "interval": "",
                     "legendFormat": "",
                     "refId": "A"
                 }
             ],
-            "title": "% rejected",
+            "timeFrom": null,
+            "title": "% reject",
             "type": "stat"
         },
         {
@@ -167,9 +412,10 @@
                 "h": 8,
                 "w": 8,
                 "x": 16,
-                "y": 0
+                "y": 16
             },
-            "id": 10,
+            "id": 14,
+            "interval": "1d",
             "options": {
                 "colorMode": "value",
                 "graphMode": "none",
@@ -189,12 +435,13 @@
             "targets": [
                 {
                     "exemplar": true,
-                    "expr": "sum(dmarc_quarantine_total)/sum(dmarc_total)",
+                    "expr": "sum(increase(dmarc_quarantine_total[$__range]))/sum(increase(dmarc_total[$__range]))",
                     "interval": "",
                     "legendFormat": "",
                     "refId": "A"
                 }
             ],
+            "timeFrom": null,
             "title": "% quarantine",
             "type": "stat"
         },
@@ -215,10 +462,11 @@
                 "h": 9,
                 "w": 24,
                 "x": 0,
-                "y": 8
+                "y": 24
             },
             "hiddenSeries": false,
             "id": 2,
+            "interval": "1d",
             "legend": {
                 "avg": false,
                 "current": false,
@@ -246,17 +494,17 @@
             "targets": [
                 {
                     "exemplar": true,
-                    "expr": "sum(dmarc_compliant_total) by (reporter)",
+                    "expr": "sum(increase(dmarc_compliant_total[$__rate_interval])) by (reporter)",
                     "interval": "",
-                    "legendFormat": "Comliant by {{reporter}}",
+                    "legendFormat": "Compliant by {{reporter}}",
                     "refId": "A"
                 },
                 {
                     "exemplar": true,
-                    "expr": "sum(dmarc_reject_total) by (reporter)",
+                    "expr": "sum(increase(dmarc_reject_total[$__rate_interval])) by (reporter)",
                     "hide": false,
                     "interval": "",
-                    "legendFormat": "Reyect by {{reporter}}",
+                    "legendFormat": "Reject by {{reporter}}",
                     "refId": "B"
                 }
             ],
@@ -317,10 +565,11 @@
                 "h": 9,
                 "w": 24,
                 "x": 0,
-                "y": 17
+                "y": 33
             },
             "hiddenSeries": false,
             "id": 4,
+            "interval": "1d",
             "legend": {
                 "avg": false,
                 "current": false,
@@ -348,22 +597,24 @@
             "targets": [
                 {
                     "exemplar": true,
-                    "expr": "sum(dmarc_compliant_total) by (dkim_domain)",
+                    "expr": "sum(increase(dmarc_compliant_total[$__rate_interval])) by (dkim_domain)",
                     "interval": "",
-                    "legendFormat": "Compliant {{dkim_domain}}",
+                    "legendFormat": "Compliant from {{dkim_domain}}",
                     "refId": "A"
                 },
                 {
                     "exemplar": true,
-                    "expr": "sum(dmarc_reject_total) by (dkim_domain)",
+                    "expr": "sum(increase(dmarc_reject_total[$__rate_interval])) by (dkim_domain)",
                     "hide": false,
                     "interval": "",
-                    "legendFormat": "Rejected by {{dkim_domain}}",
+                    "legendFormat": "Rejected from {{dkim_domain}}",
                     "refId": "B"
                 }
             ],
             "thresholds": [],
+            "timeFrom": null,
             "timeRegions": [],
+            "timeShift": null,
             "title": "# by sender domain",
             "tooltip": {
                 "shared": true,
@@ -409,12 +660,12 @@
         "list": []
     },
     "time": {
-        "from": "now-7d",
+        "from": "now-24h",
         "to": "now"
     },
     "timepicker": {},
     "timezone": "",
     "title": "dmarc dashboard",
     "uid": "dWAaq-cnk",
-    "version": 7
+    "version": 9
 }
