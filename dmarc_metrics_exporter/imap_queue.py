@@ -139,12 +139,7 @@ class ImapClient:
             pass
 
     async def create_if_not_exists(self, mailbox_name: str):
-        mailboxes = [
-            line
-            for line in await self._check("LIST", self._client.list(".", mailbox_name))
-            if line != b"LIST completed."
-        ]
-        if len(mailboxes) == 0:
+        if (await self._client.select(mailbox_name)).result != "OK":
             await self._check("CREATE", self._client.create(mailbox_name))
 
     async def uid_move(self, uid: int, destination: str):
