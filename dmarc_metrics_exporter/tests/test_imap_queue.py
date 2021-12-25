@@ -139,3 +139,13 @@ async def test_reconnects_if_imap_connection_is_lost(greenmail):
     finally:
         if queue is not None:
             await queue.stop_consumer()
+
+
+@pytest.mark.asyncio
+async def test_create_if_not_exists(greenmail):
+    async with ImapClient(greenmail.imap) as client:
+        await client.create_if_not_exists("MyRandomDir")
+        # pylint: disable=protected-access
+        assert (await client._client.select("MyRandomDir")).result == "OK"
+        assert (await client._client.select("MyRandomDirNotExist")).result != "OK"
+        # pylint: enable=protected-access
