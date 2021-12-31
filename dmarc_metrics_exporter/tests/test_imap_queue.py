@@ -3,7 +3,7 @@ from email.message import EmailMessage
 
 import pytest
 
-from dmarc_metrics_exporter.imap_queue import ImapClient, ImapQueue
+from dmarc_metrics_exporter.imap_queue import ImapClient, ImapQueue, ImapServerError
 
 from .conftest import send_email, try_until_success, verify_email_delivered
 
@@ -145,7 +145,7 @@ async def test_reconnects_if_imap_connection_is_lost(greenmail):
 async def test_create_if_not_exists(greenmail):
     async with ImapClient(greenmail.imap) as client:
         await client.create_if_not_exists("MyRandomDir")
-        # pylint: disable=protected-access
-        assert (await client._client.select("MyRandomDir")).result == "OK"
-        assert (await client._client.select("MyRandomDirNotExist")).result != "OK"
-        # pylint: enable=protected-access
+
+        assert (await client.select("MyRandomDir")) == 0
+        with pytest.raises(ImapServerError):
+            await client.select("MyRandomDirNotExist")

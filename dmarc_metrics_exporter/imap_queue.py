@@ -99,7 +99,7 @@ class ImapClient:
     async def _check(self, command: str, awaitable: Awaitable[Tuple[str, Any]]) -> Any:
         res, data = await asyncio.wait_for(awaitable, self.timeout_seconds)
         if res not in ("OK", b"OK"):
-            raise ImportError(command, res, data)
+            raise ImapServerError(command, res, data)
         return data
 
     async def select(self, folder: str = "INBOX") -> int:
