@@ -3,7 +3,7 @@ from email.message import EmailMessage
 
 import pytest
 
-from dmarc_metrics_exporter.imap_queue import ImapClient, ImapQueue
+from dmarc_metrics_exporter.imap_queue import ImapClient, ImapQueue, ImapServerError
 
 from .conftest import send_email, try_until_success, verify_email_delivered
 
@@ -139,3 +139,13 @@ async def test_reconnects_if_imap_connection_is_lost(greenmail):
     finally:
         if queue is not None:
             await queue.stop_consumer()
+
+
+@pytest.mark.asyncio
+async def test_create_if_not_exists(greenmail):
+    async with ImapClient(greenmail.imap) as client:
+        await client.create_if_not_exists("MyRandomDir")
+
+        assert (await client.select("MyRandomDir")) == 0
+        with pytest.raises(ImapServerError):
+            await client.select("MyRandomDirNotExist")

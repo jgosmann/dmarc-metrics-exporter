@@ -6,6 +6,16 @@ All notable changes to this project will be documented in this file.
 The format is based on `Keep a Changelog <https://keepachangelog.com/en/1.0.0/>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
 
+[0.4.2] - unreleased
+--------------------
+
+Fixed
+^^^^^
+
+* Make detection of required folders more robust. Fixes issues with Office365.
+  (`#15 <https://github.com/jgosmann/dmarc-metrics-exporter/issues/15>`_,
+  `#16 <https://github.com/jgosmann/dmarc-metrics-exporter/pull/16>`_)
+
 
 [0.4.1] - 2021-11-13
 --------------------
