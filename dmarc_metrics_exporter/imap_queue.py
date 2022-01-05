@@ -10,6 +10,8 @@ from typing import Any, AsyncGenerator, Awaitable, Callable, Optional, Tuple, ca
 
 from aioimaplib import aioimaplib
 
+from .imap_parser import fetch_response
+
 logger = logging.getLogger(__name__)
 
 
@@ -113,30 +115,24 @@ class ImapClient:
     async def fetch(
         self, first_msg: int, last_msg: int
     ) -> AsyncGenerator[Tuple[int, EmailMessage], None]:
-        lines = iter(
-            await self._check(
-                "FETCH", self._client.fetch(f"{first_msg}:{last_msg}", "(UID RFC822)")
-            )
+        response_lines = await self._check(
+            "FETCH", self._client.fetch(f"{first_msg}:{last_msg}", "(UID RFC822)")
         )
-        mail_header_regex = re.compile(rb"^\d+\s+FETCH\s*\(.*UID\s+(\d+).*RFC822.*")
-        try:
-            while True:
-                line = next(lines)
-                match = mail_header_regex.match(line)
-                if match:
-                    uid = int(match.group(1))
-                    mail = next(lines)
-                    terminator = next(lines)
-                    if not terminator == b")":
-                        raise ImapClientError(
-                            f"Expected group termination with ')', but got '{terminator}'."
-                        )
-                    yield uid, cast(
-                        EmailMessage,
-                        BytesParser(policy=email.policy.default).parsebytes(mail),
-                    )
-        except StopIteration:
-            pass
+        response_string = b"\r\n".join(response_lines).decode("ascii")
+        for parsed_line in fetch_response.parse_string(response_string):
+            try:
+                uid = next(value for key, value in parsed_line[2] if key == "UID")
+                mail = next(value for key, value in parsed_line[2] if key == "RFC822")
+                yield uid, cast(
+                    EmailMessage,
+                    BytesParser(policy=email.policy.default).parsebytes(
+                        mail.encode("ascii")
+                    ),
+                )
+            except StopIteration:
+                logger.warning(
+                    "FETCH response was missing requested data (UID, RFC822)."
+                )
 
     async def create_if_not_exists(self, mailbox_name: str):
         if (await self._client.select(mailbox_name)).result != "OK":
