@@ -14,5 +14,13 @@
     },
     "storage_path": "/var/lib/dmarc-metrics-exporter",
     "poll_interval_seconds": 60,
-    "deduplication_max_seconds": 604800
+    "deduplication_max_seconds": 604800,
+    "logging": {
+        "version": 1,
+        "loggers": {
+            "uvicorn": {
+                "level": "INFO"
+            }
+        }
+    }
 }

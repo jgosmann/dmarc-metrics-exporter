@@ -1,6 +1,8 @@
 import argparse
 import asyncio
 import json
+import logging
+import logging.config
 from asyncio import CancelledError
 from email.message import EmailMessage
 from pathlib import Path
@@ -33,6 +35,18 @@ def main(argv: Sequence[str]):
 
     configuration = json.load(args.configuration)
     args.configuration.close()
+
+    logging.basicConfig()
+    logging.config.dictConfig(
+        configuration.get(
+            "logging",
+            dict(
+                version=1,
+                loggers={"uvicorn": {"level": "INFO"}},
+            ),
+        )
+    )
+
     storage_path = Path(
         configuration.get("storage_path", "/var/lib/dmarc-metrics-exporter")
     )
