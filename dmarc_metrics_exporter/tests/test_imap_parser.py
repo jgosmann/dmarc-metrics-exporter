@@ -176,6 +176,21 @@ RFC822_MESSAGE = f"{RFC822_HEADER}{RFC822_BODY}"
             [15, "FETCH", [["RFC822.TEXT", RFC822_BODY]]],
         ),
         ("16 FETCH (UID 42)\r\n", [16, "FETCH", [["UID", 42]]]),
+        (
+            "1 FETCH (FLAGS (\\Seen) BODY[HEADER.FIELDS (SUBJECT)] {24}\r\n"
+            "Subject: Minimal email\r\n)\r\n",
+            [
+                1,
+                "FETCH",
+                [
+                    ["FLAGS", ["\\Seen"]],
+                    [
+                        ["BODY", "HEADER.FIELDS", ["SUBJECT"]],
+                        "Subject: Minimal email\r\n",
+                    ],
+                ],
+            ],
+        ),
     ],
 )
 def test_parses_fetch_response_line(given_string, expected):

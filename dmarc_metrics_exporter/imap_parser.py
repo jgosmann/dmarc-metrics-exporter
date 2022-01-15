@@ -29,7 +29,7 @@ literal_string = Combine(
 )
 string = dbl_quoted_string.set_parse_action(remove_quotes) | literal_string
 
-astring = astring_char[1, ...] | string
+astring = Combine(astring_char[1, ...]) | string
 nstring = string | nil
 
 
@@ -47,8 +47,8 @@ header_field_name = astring
 header_list = parenthesized_list(header_field_name)
 
 section_msgtext = (
-    CaselessKeyword("HEADER")
-    | (CaselessKeyword("HEADER.FIELDS") + Opt(CaselessKeyword(".NOT")) + header_list)
+    (CaselessKeyword("HEADER.FIELDS") + Opt(CaselessKeyword(".NOT")) + header_list)
+    | CaselessKeyword("HEADER")
     | CaselessKeyword("TEXT")
 )
 section_text = section_msgtext | CaselessKeyword("MIME")
