@@ -21,13 +21,12 @@ repository = "https://github.com/jgosmann/dmarc-metrics-exporter/"
 version = "0.4.3"
 
 [tool.poetry.dependencies]
-aioimaplib = "^0.9.0"
 dataclasses-serialization = "^1.3.1"
 prometheus_client = "^0.11.0"
+pyparsing = "^3.0.6"
 python = "^3.7,<3.10"
 uvicorn = {extras = ["standard"], version = "^0.15.0"}
 xsdata = "^21.9"
-pyparsing = "^3.0.6"
 
 [tool.poetry.dev-dependencies]
 aiohttp = "^3.7.3"
@@ -86,11 +85,6 @@ skip = [
   'dmarc_metrics_exporter/model/dmarc_aggregate_report.py',
 ]
 use_parentheses = true
-
-[tool.pytest.ini_options]
-filterwarnings = [
-  "ignore::DeprecationWarning:aioimaplib",
-]
 
 [build-system]
 build-backend = "poetry.masonry.api"
