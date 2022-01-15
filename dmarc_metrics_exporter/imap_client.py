@@ -3,6 +3,7 @@ import itertools
 import logging
 import re
 import ssl
+import time
 from asyncio import (
     Event,
     IncompleteReadError,
@@ -147,6 +148,22 @@ class _ImapCommandWriter:
         await self.writer.drain()
 
 
+class _CommandsInUse:
+    def __init__(self):
+        self._in_use = set()
+        self._change_condition = asyncio.Condition()
+
+    async def acquire(self, name: str):
+        async with self._change_condition:
+            await self._change_condition.wait_for(lambda: name not in self._in_use)
+            self._in_use.add(name)
+
+    async def release(self, name: str):
+        async with self._change_condition:
+            self._in_use.remove(name)
+            self._change_condition.notify_all()
+
+
 # pylint: disable=too-many-instance-attributes
 class ImapClient:
     num_exists: Optional[int]
@@ -159,9 +176,12 @@ class ImapClient:
         self.timeout_seconds = timeout_seconds
         self.num_exists = None
         self.fetched_queue = Queue()
+        self._last_response = time.time()
         self._capabilities = frozenset()
+        self._ongoing_commands = _CommandsInUse()
         self._command_lock = Lock()
         self._server_ready = Event()
+        self._process_responses_task = None
         self._writer = None
         self._tag_gen = (f"a{i}".encode("ascii") for i in itertools.count())
         self._tag_completions = {}
@@ -173,7 +193,7 @@ class ImapClient:
         reader, self._writer = await open_connection(
             self.connection.host, self.connection.port, ssl=ssl_context
         )
-        create_task(self._process_responses(reader))
+        self._process_responses_task = create_task(self._process_responses(reader))
 
         await wait_for(self._server_ready.wait(), self.timeout_seconds)
         logger.debug("IMAP server ready.")
@@ -188,13 +208,17 @@ class ImapClient:
         return self
 
     async def __aexit__(self, exc_type, exc, traceback):
-        await wait_for(self._logout(), self.timeout_seconds)
-        self._writer.close()
+        if not self._writer.is_closing():
+            await wait_for(self._logout(), self.timeout_seconds)
+            self._writer.close()
+        await self._process_responses_task
         self._server_ready.clear()
 
     async def _process_responses(self, reader: StreamReader):
         async for response in parse_imap_responses(reader):
             logger.debug("IMAP response: %s", response)
+
+            self._last_response = time.time()
 
             if response[0] == ResponseType.ContinueReq:
                 self._server_ready.set()
@@ -225,23 +249,43 @@ class ImapClient:
                 tag_name, state, text = response[1].split(b" ", maxsplit=2)
                 self._tag_completions[tag_name].set_response(state, text)
 
-    async def _command(self, write_command: Callable[[_ImapCommandWriter], Coroutine]):
+    async def _command(
+        self, name: str, write_command: Callable[[_ImapCommandWriter], Coroutine]
+    ):
         assert self._writer
-        tag = _ImapTag(next(self._tag_gen))
-        self._tag_completions[tag.name] = tag
-        self._writer.write(tag.name)
-        self._writer.write(b" ")
-        async with _ImapCommandWriter(
-            self._writer, self._command_lock, self._server_ready
-        ) as cmd_writer:
-            await asyncio.wait(
-                [write_command(cmd_writer), tag.wait_response()],
-                return_when=asyncio.FIRST_COMPLETED,
-            )
-        await tag.wait_response()
-        if tag.state and not tag.state.upper() == b"OK":
-            raise ImapServerError(write_command.__name__, tag.state, tag.text)
-        del self._tag_completions[tag.name]
+        try:
+            await self._ongoing_commands.acquire(name)
+            tag = _ImapTag(next(self._tag_gen))
+            self._tag_completions[tag.name] = tag
+            wait_response = asyncio.ensure_future(tag.wait_response())
+
+            self._writer.write(tag.name)
+            self._writer.write(b" ")
+            async with _ImapCommandWriter(
+                self._writer, self._command_lock, self._server_ready
+            ) as cmd_writer:
+                _, pending = await asyncio.wait(
+                    [write_command(cmd_writer), wait_response],
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+
+            while not wait_response.done():
+                _, pending = await asyncio.wait(
+                    [wait_response], timeout=self.timeout_seconds
+                )
+                if (
+                    not wait_response.done()
+                    and self.timeout_seconds < time.time() - self._last_response
+                ):
+                    for future in pending:
+                        future.cancel()
+                    raise asyncio.TimeoutError("Waiting for response timed out.")
+
+            if tag.state and not tag.state.upper() == b"OK":
+                raise ImapServerError(name, tag.state, tag.text)
+            del self._tag_completions[tag.name]
+        finally:
+            await self._ongoing_commands.release(name)
 
     async def _login(self, username: str, password: str):
         async def login_writer(cmd_writer: _ImapCommandWriter):
@@ -250,30 +294,30 @@ class ImapClient:
             await cmd_writer.write_string_literal(password)
             await cmd_writer.write_raw(b"\r\n")
 
-        await self._command(login_writer)
+        await self._command("LOGIN", login_writer)
 
     async def _logout(self):
         async def logout_writer(cmd_writer: _ImapCommandWriter):
             await cmd_writer.write_raw(b"LOGOUT\r\n")
 
-        await self._command(logout_writer)
+        await self._command("LOGOUT", logout_writer)
 
     async def _capability(self):
         async def capability_writer(cmd_writer: _ImapCommandWriter):
             await cmd_writer.write_raw(b"CAPABILITY\r\n")
 
-        await self._command(capability_writer)
+        await self._command("CAPABILITY", capability_writer)
 
     def has_capability(self, capability: str) -> bool:
         return capability.upper() in self._capabilities
 
-    async def select(self, mailbox: str) -> Optional[int]:
+    async def select(self, mailbox: str = "INBOX") -> Optional[int]:
         async def select_writer(cmd_writer: _ImapCommandWriter):
             await cmd_writer.write_raw(b"SELECT ")
             await cmd_writer.write_string_literal(mailbox)
             await cmd_writer.write_raw(b"\r\n")
 
-        await self._command(select_writer)
+        await self._command("SELECT", select_writer)
         return self.num_exists
 
     async def fetch(self, sequence_set: bytes, attrs: bytes):
@@ -284,7 +328,7 @@ class ImapClient:
             await cmd_writer.write_raw(attrs)
             await cmd_writer.write_raw(b"\r\n")
 
-        await self._command(fetch_writer)
+        await self._command("FETCH", fetch_writer)
 
     async def create(self, name: str):
         async def create_writer(cmd_writer: _ImapCommandWriter):
@@ -292,7 +336,7 @@ class ImapClient:
             await cmd_writer.write_string_literal(name)
             await cmd_writer.write_raw(b"\r\n")
 
-        await self._command(create_writer)
+        await self._command("CREATE", create_writer)
 
     async def create_if_not_exists(self, name: str):
         try:
@@ -306,7 +350,7 @@ class ImapClient:
             await cmd_writer.write_string_literal(name)
             await cmd_writer.write_raw(b"\r\n")
 
-        await self._command(create_writer)
+        await self._command("DELETE", create_writer)
 
     async def uid_copy(self, uid: int, destination: str):
         async def uid_copy_writer(cmd_writer: _ImapCommandWriter):
@@ -316,7 +360,7 @@ class ImapClient:
             await cmd_writer.write_string_literal(destination)
             await cmd_writer.write_raw(b"\r\n")
 
-        await self._command(uid_copy_writer)
+        await self._command("UID COPY", uid_copy_writer)
 
     async def uid_move(self, uid: int, destination: str):
         async def uid_move_writer(cmd_writer: _ImapCommandWriter):
@@ -326,7 +370,7 @@ class ImapClient:
             await cmd_writer.write_string_literal(destination)
             await cmd_writer.write_raw(b"\r\n")
 
-        await self._command(uid_move_writer)
+        await self._command("UID MOVE", uid_move_writer)
 
     async def uid_store(self, uid: int, flags: bytes):
         async def uid_store_writer(cmd_writer: _ImapCommandWriter):
@@ -336,13 +380,13 @@ class ImapClient:
             await cmd_writer.write_raw(flags)
             await cmd_writer.write_raw(b"\r\n")
 
-        await self._command(uid_store_writer)
+        await self._command("STORE", uid_store_writer)
 
     async def expunge(self):
         async def expunge_writer(cmd_writer: _ImapCommandWriter):
             await cmd_writer.write_raw(b"EXPUNGE\r\n")
 
-        await self._command(expunge_writer)
+        await self._command("EXPUNGE", expunge_writer)
 
 
 class ImapServerError(ImapError):

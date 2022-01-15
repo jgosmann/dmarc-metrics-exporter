@@ -141,6 +141,11 @@ class TestImapClient:
     async def test_create_delete(self, greenmail):
         async with ImapClient(greenmail.imap) as client:
             try:
+                await client.delete("new mailbox")
+            except ImapServerError:
+                pass
+
+            try:
                 await client.create("new mailbox")
                 assert await client.select("new mailbox") == 0
             finally:
