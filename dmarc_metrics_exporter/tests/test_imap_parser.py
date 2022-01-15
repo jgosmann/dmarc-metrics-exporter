@@ -1,6 +1,11 @@
 import pytest
+from pyparsing import ParseException
 
-from dmarc_metrics_exporter.imap_parser import fetch_response_line, string
+from dmarc_metrics_exporter.imap_parser import (
+    fetch_response_line,
+    response_tagged,
+    string,
+)
 
 
 @pytest.mark.parametrize(
@@ -175,3 +180,35 @@ RFC822_MESSAGE = f"{RFC822_HEADER}{RFC822_BODY}"
 )
 def test_parses_fetch_response_line(given_string, expected):
     assert fetch_response_line.parse_string(given_string).as_list() == expected
+
+
+@pytest.mark.parametrize(
+    "given_string, expected",
+    [
+        ("tag123 OK some text\r\n", ["tag123", "OK", [], "some text"]),
+        (
+            "tag123 OK [UIDNEXT 456] some text\r\n",
+            ["tag123", "OK", ["UIDNEXT", 456], "some text"],
+        ),
+        (
+            "tag123 OK [BADCHARSET ({8}\r\nfoo\r\nbar)] some text\r\n",
+            ["tag123", "OK", ["BADCHARSET", ["foo\r\nbar"]], "some text"],
+        ),
+    ],
+)
+def test_parses_tagged_response_line(given_string, expected):
+    assert (
+        response_tagged.parse_string(given_string, parse_all=True).as_list() == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "given_string",
+    [
+        "tag123 OK [BADCHARSET ({8}\r\n",
+        "tag123 OK [BADCHARSET ({8}\r\nfoo\r\n",
+    ],
+)
+def test_parses_tagged_response_line_exceptions(given_string):
+    with pytest.raises(ParseException):
+        response_tagged.parse_string(given_string, parse_all=True)

@@ -7,6 +7,7 @@ from pyparsing import (
     Literal,
     Opt,
     Regex,
+    StringEnd,
     common,
     dbl_quoted_string,
     remove_quotes,
@@ -16,6 +17,7 @@ from pyparsing.helpers import counted_array, nested_expr
 
 nil = CaselessKeyword("NIL")
 atom_char = Regex(r'[^(){ %*"\\\]\x00-\x1f\x7f-\x9f]')
+atom = atom_char[1, ...]
 resp_specials = Literal("]")
 astring_char = atom_char | resp_specials
 
@@ -78,7 +80,7 @@ envelope = pair(
     CaselessKeyword("ENVELOPE"),
     parenthesized_list(parenthesized_list(address) | nstring),
 )
-flag = Combine(Literal("\\") + atom_char[1, ...])
+flag = Combine(Literal("\\") + atom)
 flags = pair(CaselessKeyword("FLAGS"), parenthesized_list(flag))
 internaldate = pair(
     CaselessKeyword("INTERNALDATE"), dbl_quoted_string.set_parse_action(remove_quotes)
@@ -106,3 +108,36 @@ fetch_response_line = (
 )
 
 fetch_response = Group(fetch_response_line[...])
+
+text = Regex(r"[^\r\n]+")
+flag_perm = flag | Literal(r"\*")
+auth_type = atom
+capability = (CaselessKeyword("AUTH=") + auth_type) | atom
+capability_data = (
+    CaselessKeyword("CAPABILITY")
+    + capability[...]
+    + CaselessKeyword("IMAP4rev1")
+    + capability[...]
+)
+response_text_code = (
+    CaselessKeyword("ALERT")
+    | (CaselessKeyword("BADCHARSET") + Opt(parenthesized_list(astring)))
+    | capability_data
+    | CaselessKeyword("PARSE")
+    | (CaselessKeyword("PERMANENTFLAGS") + parenthesized_list(flag_perm))
+    | CaselessKeyword("READ-ONLY")
+    | CaselessKeyword("READ-WRITE")
+    | CaselessKeyword("TRYCREATE")
+    | (CaselessKeyword("UIDNEXT") + common.integer)
+    | (CaselessKeyword("UIDVALIDITY") + common.integer)
+    | (CaselessKeyword("UNSEEN") + common.integer)
+    | (atom + Opt(Regex(r"[^\r\r\]]+")))
+)
+resp_text = Group(
+    Opt(Literal("[").suppress() + response_text_code + Literal("]").suppress())
+) + (~Literal("[") + text)
+resp_cond_state = (
+    CaselessKeyword("OK") | CaselessKeyword("NO") | CaselessKeyword("BAD")
+) + resp_text
+tag = Combine((~Literal("+") + astring_char)[1, ...])
+response_tagged = tag.leave_whitespace() + resp_cond_state + StringEnd()
