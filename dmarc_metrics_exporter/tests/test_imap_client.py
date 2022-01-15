@@ -1,13 +1,17 @@
 import io
-from asyncio import IncompleteReadError
+from asyncio import IncompleteReadError, wait_for
 
 import pytest
 
 from dmarc_metrics_exporter.imap_client import (
+    ImapClient,
+    ImapServerError,
     IncompleteResponse,
     ResponseType,
     parse_imap_responses,
 )
+from dmarc_metrics_exporter.tests.conftest import send_email
+from dmarc_metrics_exporter.tests.sample_emails import create_minimal_email
 
 
 class MockReader:
@@ -111,3 +115,114 @@ async def test_imap_reader_parse_error(input_buf):
     respone_generator = parse_imap_responses(MockReader(input_buf))
     with pytest.raises(IncompleteResponse):
         await respone_generator.__anext__()
+
+
+class TestImapClient:
+    @pytest.mark.asyncio
+    async def test_basic_connection(self, greenmail):
+        async with ImapClient(greenmail.imap) as client:
+            assert client.has_capability("IMAP4rev1")
+
+    @pytest.mark.asyncio
+    async def test_fetch(self, greenmail):
+        await send_email(create_minimal_email(greenmail.imap.username), greenmail.smtp)
+        async with ImapClient(greenmail.imap) as client:
+            assert await client.select("INBOX") == 1
+            await client.fetch(b"1:1", b"(BODY[HEADER.FIELDS (SUBJECT)])")
+            fetched_email = await wait_for(client.fetched_queue.get(), 5)
+            assert fetched_email[:2] == [1, "FETCH"]
+            assert [
+                value
+                for key, value in fetched_email[2]
+                if key[:2] == ["BODY", "HEADER.FIELDS"]
+            ] == ["Subject: Minimal email\r\n"]
+
+    @pytest.mark.asyncio
+    async def test_create_delete(self, greenmail):
+        async with ImapClient(greenmail.imap) as client:
+            try:
+                await client.create("new mailbox")
+                assert await client.select("new mailbox") == 0
+            finally:
+                await client.select("INBOX")
+                await client.delete("new mailbox")
+
+            with pytest.raises(ImapServerError):
+                await client.select("new mailbox")
+
+    @pytest.mark.asyncio
+    async def test_create_if_not_exists(self, greenmail):
+        async with ImapClient(greenmail.imap) as client:
+            try:
+                await client.create_if_not_exists("new mailbox")
+                await client.create_if_not_exists("new mailbox")
+                assert await client.select("new mailbox") == 0
+            finally:
+                await client.select("INBOX")
+                await client.delete("new mailbox")
+
+    @pytest.mark.asyncio
+    async def test_uid_copy(self, greenmail):
+        await send_email(create_minimal_email(greenmail.imap.username), greenmail.smtp)
+        async with ImapClient(greenmail.imap) as client:
+            try:
+                await client.create_if_not_exists("destination")
+                assert await client.select("INBOX") == 1
+                await client.fetch(b"1:1", b"(UID)")
+                fetched_email = await wait_for(client.fetched_queue.get(), 5)
+                assert fetched_email[:2] == [1, "FETCH"]
+                uid = [value for key, value in fetched_email[2] if key == "UID"][0]
+                await client.uid_copy(uid, "destination")
+                assert await client.select("destination") == 1
+            finally:
+                await client.select("INBOX")
+                await client.delete("destination")
+
+    @pytest.mark.asyncio
+    @pytest.mark.xfail(reason="Feature not supported by Greenmail.")
+    async def test_uid_move(self, greenmail):
+        await send_email(create_minimal_email(greenmail.imap.username), greenmail.smtp)
+        async with ImapClient(greenmail.imap) as client:
+            try:
+                await client.create_if_not_exists("destination")
+                assert await client.select("INBOX") == 1
+                await client.fetch(b"1:1", b"(UID)")
+                fetched_email = await wait_for(client.fetched_queue.get(), 5)
+                assert fetched_email[:2] == [1, "FETCH"]
+                uid = [value for key, value in fetched_email[2] if key == "UID"][0]
+                await client.uid_move(uid, "destination")
+                assert client.num_exists == 0
+                assert await client.select("destination") == 1
+            finally:
+                await client.select("INBOX")
+                await client.delete("destination")
+
+    @pytest.mark.asyncio
+    async def test_uid_store(self, greenmail):
+        await send_email(create_minimal_email(greenmail.imap.username), greenmail.smtp)
+        async with ImapClient(greenmail.imap) as client:
+            assert await client.select("INBOX") == 1
+            await client.fetch(b"1:1", b"(UID)")
+            fetched_email = await wait_for(client.fetched_queue.get(), 5)
+            assert fetched_email[:2] == [1, "FETCH"]
+            uid = [value for key, value in fetched_email[2] if key == "UID"][0]
+            await client.uid_store(uid, rb"+FLAGS (\Deleted)")
+
+            fetched_email = await wait_for(client.fetched_queue.get(), 5)
+            assert fetched_email[:2] == [1, "FETCH"]
+            assert [value for key, value in fetched_email[2] if key == "FLAGS"][
+                0
+            ].as_list() == ["\\Deleted"]
+
+    @pytest.mark.asyncio
+    async def test_uid_expunge(self, greenmail):
+        await send_email(create_minimal_email(greenmail.imap.username), greenmail.smtp)
+        async with ImapClient(greenmail.imap) as client:
+            assert await client.select("INBOX") == 1
+            await client.fetch(b"1:1", b"(UID)")
+            fetched_email = await wait_for(client.fetched_queue.get(), 5)
+            assert fetched_email[:2] == [1, "FETCH"]
+            uid = [value for key, value in fetched_email[2] if key == "UID"][0]
+            await client.uid_store(uid, rb"+FLAGS (\Deleted)")
+            await client.expunge()
+            assert client.num_exists == 0

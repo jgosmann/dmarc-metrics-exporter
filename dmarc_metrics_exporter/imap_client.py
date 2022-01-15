@@ -1,18 +1,43 @@
+import asyncio
+import itertools
+import logging
 import re
-from asyncio import IncompleteReadError, StreamReader
+import ssl
+from asyncio import (
+    Event,
+    IncompleteReadError,
+    Lock,
+    Queue,
+    StreamReader,
+    StreamWriter,
+    create_task,
+    open_connection,
+    wait_for,
+)
+from dataclasses import dataclass
 from enum import Enum
-from typing import AsyncGenerator, Tuple
+from typing import AsyncGenerator, Callable, Coroutine, Dict, FrozenSet, Optional, Tuple
 
 from pyparsing import ParseException
 
-from .imap_parser import response_tagged
+from .imap_parser import fetch_response_line, response_tagged
+
+logger = logging.getLogger(__name__)
 
 
-class ImapException(Exception):
+@dataclass
+class ConnectionConfig:
+    username: str
+    password: str
+    host: str = "localhost"
+    port: int = 993
+
+
+class ImapError(Exception):
     pass
 
 
-class IncompleteResponse(ImapException):
+class IncompleteResponse(ImapError):
     pass
 
 
@@ -37,6 +62,8 @@ async def parse_imap_responses(
 
     while not reader.at_eof():
         line = await reader.readline()
+        if not line:
+            continue
         if line.startswith(b"+ "):
             yield (ResponseType.ContinueReq, line[2:])
         elif line.startswith(b"* "):
@@ -57,3 +84,278 @@ async def parse_imap_responses(
                     raise IncompleteResponse(line)
                 line += await reader.readline()
             yield (ResponseType.Tagged, line)
+
+    logger.debug("IMAP response stream ended.")
+
+
+class _ImapTag:
+    state: Optional[bytes]
+    text: Optional[bytes]
+
+    def __init__(self, name: bytes):
+        self.name = name
+        self._response_received = Event()
+        self.state = None
+        self.text = None
+
+    async def wait_response(self):
+        await self._response_received.wait()
+
+    def set_response(self, state: bytes, text: bytes):
+        logger.debug("IMAP command '%s' completed with '%s %s'", self.name, state, text)
+        self.state = state
+        self.text = text
+        self._response_received.set()
+
+
+class _ImapCommandWriter:
+    def __init__(self, writer: StreamWriter, command_lock: Lock, server_ready: Event):
+        self.writer = writer
+        self._command_lock = command_lock
+        self._server_ready = server_ready
+        self._has_lock = False
+
+    async def __aenter__(self):
+        await self._command_lock.acquire()
+        self._has_lock = True
+        return self
+
+    async def __aexit__(self, exc_type, exc, traceback):
+        self._has_lock = False
+        self._command_lock.release()
+
+    async def write_raw(self, buf: bytes):
+        assert self._has_lock
+        self.writer.write(buf)
+        await self.writer.drain()
+
+    async def write_int(self, num: int):
+        assert self._has_lock
+        self.writer.write(str(num).encode("ascii"))
+        await self.writer.drain()
+
+    async def write_string_literal(self, string: str):
+        assert self._has_lock
+        encoded = string.encode("utf-8")
+        self._server_ready.clear()
+        self.writer.write(b"{")
+        self.writer.write(str(len(encoded)).encode("ascii"))
+        self.writer.write(b"}\r\n")
+        await self.writer.drain()
+        await self._server_ready.wait()
+        self.writer.write(encoded)
+        await self.writer.drain()
+
+
+# pylint: disable=too-many-instance-attributes
+class ImapClient:
+    num_exists: Optional[int]
+    fetched_queue: Queue
+    _capabilities: FrozenSet[str]
+    _tag_completions: Dict[bytes, _ImapTag]
+
+    def __init__(self, connection: ConnectionConfig, timeout_seconds: int = 10):
+        self.connection = connection
+        self.timeout_seconds = timeout_seconds
+        self.num_exists = None
+        self.fetched_queue = Queue()
+        self._capabilities = frozenset()
+        self._command_lock = Lock()
+        self._server_ready = Event()
+        self._writer = None
+        self._tag_gen = (f"a{i}".encode("ascii") for i in itertools.count())
+        self._tag_completions = {}
+
+    async def __aenter__(self):
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False  # FIXME insecure
+        ssl_context.verify_mode = ssl.CERT_NONE  # FIXME insecure
+        reader, self._writer = await open_connection(
+            self.connection.host, self.connection.port, ssl=ssl_context
+        )
+        create_task(self._process_responses(reader))
+
+        await wait_for(self._server_ready.wait(), self.timeout_seconds)
+        logger.debug("IMAP server ready.")
+        await wait_for(
+            self._capability(),
+            self.timeout_seconds,
+        )
+        await wait_for(
+            self._login(self.connection.username, self.connection.password),
+            self.timeout_seconds,
+        )
+        return self
+
+    async def __aexit__(self, exc_type, exc, traceback):
+        await wait_for(self._logout(), self.timeout_seconds)
+        self._writer.close()
+        self._server_ready.clear()
+
+    async def _process_responses(self, reader: StreamReader):
+        async for response in parse_imap_responses(reader):
+            logger.debug("IMAP response: %s", response)
+
+            if response[0] == ResponseType.ContinueReq:
+                self._server_ready.set()
+            elif response[0] == ResponseType.Untagged:
+                if response[1].upper().startswith(b"OK "):
+                    self._server_ready.set()
+                elif response[1].startswith(b"CAPABILITY "):
+                    logger.debug("IMAP server reports capabilities: %s", response[1])
+                    self._capabilities = frozenset(
+                        c.strip().upper()
+                        for c in response[1].decode("utf-8").split(" ")[1:]
+                    )
+                elif response[1].upper().endswith(b" EXISTS\r\n"):
+                    self.num_exists = int(response[1].split(b" ", maxsplit=1)[0])
+                elif response[1].upper().endswith(b" EXPUNGE\r\n"):
+                    if self.num_exists is not None:
+                        self.num_exists -= 1
+                else:
+                    try:
+                        await self.fetched_queue.put(
+                            fetch_response_line.parse_string(
+                                response[1].decode("utf-8"), parse_all=True
+                            )
+                        )
+                    except ParseException:
+                        logger.debug("Ignored untagged IMAP response: %s", response[1])
+            elif response[0] == ResponseType.Tagged:
+                tag_name, state, text = response[1].split(b" ", maxsplit=2)
+                self._tag_completions[tag_name].set_response(state, text)
+
+    async def _command(self, write_command: Callable[[_ImapCommandWriter], Coroutine]):
+        assert self._writer
+        tag = _ImapTag(next(self._tag_gen))
+        self._tag_completions[tag.name] = tag
+        self._writer.write(tag.name)
+        self._writer.write(b" ")
+        async with _ImapCommandWriter(
+            self._writer, self._command_lock, self._server_ready
+        ) as cmd_writer:
+            await asyncio.wait(
+                [write_command(cmd_writer), tag.wait_response()],
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+        await tag.wait_response()
+        if tag.state and not tag.state.upper() == b"OK":
+            raise ImapServerError(write_command.__name__, tag.state, tag.text)
+        del self._tag_completions[tag.name]
+
+    async def _login(self, username: str, password: str):
+        async def login_writer(cmd_writer: _ImapCommandWriter):
+            await cmd_writer.write_raw(b"LOGIN ")
+            await cmd_writer.write_string_literal(username)
+            await cmd_writer.write_string_literal(password)
+            await cmd_writer.write_raw(b"\r\n")
+
+        await self._command(login_writer)
+
+    async def _logout(self):
+        async def logout_writer(cmd_writer: _ImapCommandWriter):
+            await cmd_writer.write_raw(b"LOGOUT\r\n")
+
+        await self._command(logout_writer)
+
+    async def _capability(self):
+        async def capability_writer(cmd_writer: _ImapCommandWriter):
+            await cmd_writer.write_raw(b"CAPABILITY\r\n")
+
+        await self._command(capability_writer)
+
+    def has_capability(self, capability: str) -> bool:
+        return capability.upper() in self._capabilities
+
+    async def select(self, mailbox: str) -> Optional[int]:
+        async def select_writer(cmd_writer: _ImapCommandWriter):
+            await cmd_writer.write_raw(b"SELECT ")
+            await cmd_writer.write_string_literal(mailbox)
+            await cmd_writer.write_raw(b"\r\n")
+
+        await self._command(select_writer)
+        return self.num_exists
+
+    async def fetch(self, sequence_set: bytes, attrs: bytes):
+        async def fetch_writer(cmd_writer: _ImapCommandWriter):
+            await cmd_writer.write_raw(b"FETCH ")
+            await cmd_writer.write_raw(sequence_set)
+            await cmd_writer.write_raw(b" ")
+            await cmd_writer.write_raw(attrs)
+            await cmd_writer.write_raw(b"\r\n")
+
+        await self._command(fetch_writer)
+
+    async def create(self, name: str):
+        async def create_writer(cmd_writer: _ImapCommandWriter):
+            await cmd_writer.write_raw(b"CREATE ")
+            await cmd_writer.write_string_literal(name)
+            await cmd_writer.write_raw(b"\r\n")
+
+        await self._command(create_writer)
+
+    async def create_if_not_exists(self, name: str):
+        try:
+            await self.select(name)
+        except ImapServerError:
+            await self.create(name)
+
+    async def delete(self, name: str):
+        async def create_writer(cmd_writer: _ImapCommandWriter):
+            await cmd_writer.write_raw(b"DELETE ")
+            await cmd_writer.write_string_literal(name)
+            await cmd_writer.write_raw(b"\r\n")
+
+        await self._command(create_writer)
+
+    async def uid_copy(self, uid: int, destination: str):
+        async def uid_copy_writer(cmd_writer: _ImapCommandWriter):
+            await cmd_writer.write_raw(b"UID COPY ")
+            await cmd_writer.write_int(uid)
+            await cmd_writer.write_raw(b" ")
+            await cmd_writer.write_string_literal(destination)
+            await cmd_writer.write_raw(b"\r\n")
+
+        await self._command(uid_copy_writer)
+
+    async def uid_move(self, uid: int, destination: str):
+        async def uid_move_writer(cmd_writer: _ImapCommandWriter):
+            await cmd_writer.write_raw(b"UID MOVE ")
+            await cmd_writer.write_int(uid)
+            await cmd_writer.write_raw(b" ")
+            await cmd_writer.write_string_literal(destination)
+            await cmd_writer.write_raw(b"\r\n")
+
+        await self._command(uid_move_writer)
+
+    async def uid_store(self, uid: int, flags: bytes):
+        async def uid_store_writer(cmd_writer: _ImapCommandWriter):
+            await cmd_writer.write_raw(b"UID STORE ")
+            await cmd_writer.write_int(uid)
+            await cmd_writer.write_raw(b" ")
+            await cmd_writer.write_raw(flags)
+            await cmd_writer.write_raw(b"\r\n")
+
+        await self._command(uid_store_writer)
+
+    async def expunge(self):
+        async def expunge_writer(cmd_writer: _ImapCommandWriter):
+            await cmd_writer.write_raw(b"EXPUNGE\r\n")
+
+        await self._command(expunge_writer)
+
+
+class ImapServerError(ImapError):
+    """Error class for errors reported from the server."""
+
+    def __init__(self, command, result, server_response):
+        self.command = command
+        self.result = result
+        self.server_response = server_response
+        super().__init__(command, result, server_response)
+
+    def __str__(self):
+        return (
+            f"IMAP error: Command {self.command} returned {self.result} "
+            f"with response data: {self.server_response}"
+        )
