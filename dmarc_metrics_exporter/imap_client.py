@@ -1,7 +1,7 @@
 import re
 from asyncio import IncompleteReadError, StreamReader
 from enum import Enum
-from typing import Tuple
+from typing import AsyncGenerator, Tuple
 
 from pyparsing import ParseException
 
@@ -22,41 +22,38 @@ class ResponseType(Enum):
     Tagged = "tagged"
 
 
-# pylint: disable=too-few-public-methods
-class ImapReader:
-    LITERAL_FOLLOWS = re.compile(rb".*\{(\d+)\}\r\n$")
+def _parses_as_tagged_response(line: bytes) -> bool:
+    try:
+        response_tagged.parse_string(line.decode("ascii"), parse_all=True)
+        return True
+    except ParseException:
+        return False
 
-    def __init__(self, reader: StreamReader):
-        self.reader = reader
 
-    async def read_response(self) -> Tuple[ResponseType, bytes]:
-        line = await self.reader.readline()
+async def parse_imap_responses(
+    reader: StreamReader,
+) -> AsyncGenerator[Tuple[ResponseType, bytes], None]:
+    literal_follows = re.compile(rb".*\{(\d+)\}\r\n$")
+
+    while not reader.at_eof():
+        line = await reader.readline()
         if line.startswith(b"+ "):
-            return (ResponseType.ContinueReq, line[2:])
+            yield (ResponseType.ContinueReq, line[2:])
         elif line.startswith(b"* "):
-            match = self.LITERAL_FOLLOWS.match(line)
+            match = literal_follows.match(line)
             while match:
                 try:
                     line += (
-                        await self.reader.readexactly(int(match.group(1)))
-                        + await self.reader.readline()
+                        await reader.readexactly(int(match.group(1)))
+                        + await reader.readline()
                     )
                 except IncompleteReadError as err:
                     raise IncompleteResponse(line) from err
-                match = self.LITERAL_FOLLOWS.match(line)
-            return (ResponseType.Untagged, line[2:])
+                match = literal_follows.match(line)
+            yield (ResponseType.Untagged, line[2:])
         else:
-            while not self._parses_as_tagged_response(line):
-                if self.reader.at_eof():
+            while not _parses_as_tagged_response(line):
+                if reader.at_eof():
                     raise IncompleteResponse(line)
-                line += await self.reader.readline()
-            return (ResponseType.Tagged, line)
-
-    @classmethod
-    def _parses_as_tagged_response(cls, line: bytes) -> bool:
-        try:
-            response_tagged.parse_string(line.decode("ascii"), parse_all=True)
-            return True
-        except ParseException as err:
-            print(err)
-            return False
+                line += await reader.readline()
+            yield (ResponseType.Tagged, line)

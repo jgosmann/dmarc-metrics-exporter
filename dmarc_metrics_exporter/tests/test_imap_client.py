@@ -4,9 +4,9 @@ from asyncio import IncompleteReadError
 import pytest
 
 from dmarc_metrics_exporter.imap_client import (
-    ImapReader,
     IncompleteResponse,
     ResponseType,
+    parse_imap_responses,
 )
 
 
@@ -92,9 +92,9 @@ class MockReader:
     ],
 )
 async def test_imap_reader(input_buf, expected):
-    imap_reader = ImapReader(MockReader(input_buf))
-    for response in expected:
-        assert await imap_reader.read_response() == response
+    respone_generator = parse_imap_responses(MockReader(input_buf))
+    actual = [response async for response in respone_generator]
+    assert actual == expected
 
 
 @pytest.mark.asyncio
@@ -108,6 +108,6 @@ async def test_imap_reader(input_buf, expected):
     ],
 )
 async def test_imap_reader_parse_error(input_buf):
-    imap_reader = ImapReader(MockReader(input_buf))
+    respone_generator = parse_imap_responses(MockReader(input_buf))
     with pytest.raises(IncompleteResponse):
-        await imap_reader.read_response()
+        await respone_generator.__anext__()
