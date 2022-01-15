@@ -372,6 +372,14 @@ class ImapClient:
 
         await self._command("UID MOVE", uid_move_writer)
 
+    async def uid_move_graceful(self, uid: int, destination: str):
+        if self.has_capability("MOVE"):
+            await self.uid_move(uid, destination)
+        else:
+            await self.uid_copy(uid, destination)
+            await self.uid_store(uid, rb"+FLAGS.SILENT (\Deleted)")
+            await self.expunge()
+
     async def uid_store(self, uid: int, flags: bytes):
         async def uid_store_writer(cmd_writer: _ImapCommandWriter):
             await cmd_writer.write_raw(b"UID STORE ")

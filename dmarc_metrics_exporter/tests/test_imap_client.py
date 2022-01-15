@@ -203,6 +203,24 @@ class TestImapClient:
                 await client.delete("destination")
 
     @pytest.mark.asyncio
+    async def test_uid_move_graceful(self, greenmail):
+        await send_email(create_minimal_email(greenmail.imap.username), greenmail.smtp)
+        async with ImapClient(greenmail.imap) as client:
+            try:
+                await client.create_if_not_exists("destination")
+                assert await client.select("INBOX") == 1
+                await client.fetch(b"1:1", b"(UID)")
+                fetched_email = await wait_for(client.fetched_queue.get(), 5)
+                assert fetched_email[:2] == [1, "FETCH"]
+                uid = [value for key, value in fetched_email[2] if key == "UID"][0]
+                await client.uid_move_graceful(uid, "destination")
+                assert client.num_exists == 0
+                assert await client.select("destination") == 1
+            finally:
+                await client.select("INBOX")
+                await client.delete("destination")
+
+    @pytest.mark.asyncio
     async def test_uid_store(self, greenmail):
         await send_email(create_minimal_email(greenmail.imap.username), greenmail.smtp)
         async with ImapClient(greenmail.imap) as client:
