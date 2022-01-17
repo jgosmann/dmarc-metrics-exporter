@@ -101,6 +101,8 @@ The following configuration options are available:
   * ``port`` (number, default ``993``): Port of the IMAP server to connect to.
   * ``username`` (string, required): Login username for the IMAP connection.
   * ``password``: (string, required): Login password for the IMAP connection.
+  * ``use_ssl``: (boolean, default ``true``): Whether to use SSL encryption for the connection. Disabling this will transmit the password in clear text! Currently, there is no support for STARTTLS.
+  * ``verify_certificate``: (boolean, default ``true``): Whether to verify the server's SSL certificate. You might have to set this to ``false`` if you are using a self-signed certificate. If this is disabled, someone else could impersonate the server and obtain the login data.
 
 * ``folders`` (object):
 

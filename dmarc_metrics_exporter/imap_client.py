@@ -17,7 +17,17 @@ from asyncio import (
 )
 from dataclasses import dataclass
 from enum import Enum
-from typing import AsyncGenerator, Callable, Coroutine, Dict, FrozenSet, Optional, Tuple
+from typing import (
+    AsyncGenerator,
+    Callable,
+    Coroutine,
+    Dict,
+    FrozenSet,
+    Literal,
+    Optional,
+    Tuple,
+    Union,
+)
 
 from pyparsing import ParseException
 
@@ -32,6 +42,18 @@ class ConnectionConfig:
     password: str
     host: str = "localhost"
     port: int = 993
+    use_ssl: bool = True
+    verify_certificate: bool = True
+
+    def create_ssl_context(self) -> Union[Literal[False], ssl.SSLContext]:
+        if self.use_ssl:
+            ssl_context = ssl.create_default_context()
+            if not self.verify_certificate:
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+            return ssl_context
+        else:
+            return False
 
 
 class ImapError(Exception):
@@ -110,33 +132,19 @@ class _ImapTag:
 
 
 class _ImapCommandWriter:
-    def __init__(self, writer: StreamWriter, command_lock: Lock, server_ready: Event):
+    def __init__(self, writer: StreamWriter, server_ready: Event):
         self.writer = writer
-        self._command_lock = command_lock
         self._server_ready = server_ready
-        self._has_lock = False
-
-    async def __aenter__(self):
-        await self._command_lock.acquire()
-        self._has_lock = True
-        return self
-
-    async def __aexit__(self, exc_type, exc, traceback):
-        self._has_lock = False
-        self._command_lock.release()
 
     async def write_raw(self, buf: bytes):
-        assert self._has_lock
         self.writer.write(buf)
         await self.writer.drain()
 
     async def write_int(self, num: int):
-        assert self._has_lock
         self.writer.write(str(num).encode("ascii"))
         await self.writer.drain()
 
     async def write_string_literal(self, string: str):
-        assert self._has_lock
         encoded = string.encode("utf-8")
         self._server_ready.clear()
         self.writer.write(b"{")
@@ -187,11 +195,10 @@ class ImapClient:
         self._tag_completions = {}
 
     async def __aenter__(self):
-        ssl_context = ssl.create_default_context()
-        ssl_context.check_hostname = False  # FIXME insecure
-        ssl_context.verify_mode = ssl.CERT_NONE  # FIXME insecure
         reader, self._writer = await open_connection(
-            self.connection.host, self.connection.port, ssl=ssl_context
+            self.connection.host,
+            self.connection.port,
+            ssl=self.connection.create_ssl_context(),
         )
         self._process_responses_task = create_task(self._process_responses(reader))
 
@@ -259,11 +266,10 @@ class ImapClient:
             self._tag_completions[tag.name] = tag
             wait_response = asyncio.ensure_future(tag.wait_response())
 
-            self._writer.write(tag.name)
-            self._writer.write(b" ")
-            async with _ImapCommandWriter(
-                self._writer, self._command_lock, self._server_ready
-            ) as cmd_writer:
+            async with self._command_lock:
+                self._writer.write(tag.name)
+                self._writer.write(b" ")
+                cmd_writer = _ImapCommandWriter(self._writer, self._server_ready)
                 _, pending = await asyncio.wait(
                     [write_command(cmd_writer), wait_response],
                     return_when=asyncio.FIRST_COMPLETED,

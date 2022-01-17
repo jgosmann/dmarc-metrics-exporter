@@ -5,7 +5,9 @@
         "host": "localhost",
         "port": 993,
         "username": "dmarc@your-server.com",
-        "password": "supersecret"
+        "password": "supersecret",
+        "use_ssl": true,
+        "verify_certificate": true
     },
     "folders": {
         "inbox": "INBOX",

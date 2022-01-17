@@ -47,7 +47,12 @@ def fixture_greenmail() -> Greenmail:
     greenmail = Greenmail(
         smtp=NetworkAddress("localhost", 3025),
         imap=ConnectionConfig(
-            host="localhost", port=3993, username="queue@localhost", password="password"
+            host="localhost",
+            port=3993,
+            username="queue@localhost",
+            password="password",
+            use_ssl=True,
+            verify_certificate=False,
         ),
         api=NetworkAddress("localhost", 8080),
     )

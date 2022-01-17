@@ -1,17 +1,33 @@
+import asyncio
 import io
-from asyncio import IncompleteReadError, wait_for
+import logging
+import re
+from asyncio import (
+    Condition,
+    Event,
+    IncompleteReadError,
+    StreamReader,
+    StreamWriter,
+    create_task,
+    start_server,
+    wait_for,
+)
+from typing import Callable, Coroutine, Dict
 
 import pytest
 
 from dmarc_metrics_exporter.imap_client import (
+    ConnectionConfig,
     ImapClient,
     ImapServerError,
     IncompleteResponse,
     ResponseType,
     parse_imap_responses,
 )
-from dmarc_metrics_exporter.tests.conftest import send_email
+from dmarc_metrics_exporter.tests.conftest import send_email, try_until_success
 from dmarc_metrics_exporter.tests.sample_emails import create_minimal_email
+
+logger = logging.getLogger(__name__)
 
 
 class MockReader:
@@ -249,3 +265,158 @@ class TestImapClient:
             await client.uid_store(uid, rb"+FLAGS (\Deleted)")
             await client.expunge()
             assert client.num_exists == 0
+
+    @pytest.mark.asyncio
+    async def test_executes_same_command_type_sequentially(self):
+        continue_triggers_change = Condition()
+        continue_triggers = []
+
+        async def select_handler():
+            continue_event = Event()
+            async with continue_triggers_change:
+                continue_triggers.append(continue_event)
+                continue_triggers_change.notify_all()
+            await continue_event.wait()
+
+        async with MockImapServer(
+            host="localhost", port=4143, command_handlers={b"SELECT": select_handler}
+        ) as mock_server:
+            async with ImapClient(mock_server.connection_config) as client:
+                select_tasks = [
+                    create_task(client.select("INBOX")),
+                    create_task(client.select("foo")),
+                ]
+                async with continue_triggers_change:
+                    await asyncio.wait_for(
+                        continue_triggers_change.wait_for(
+                            lambda: len(continue_triggers) >= 1
+                        ),
+                        timeout=5,
+                    )
+                assert len(continue_triggers) == 1
+                continue_triggers[0].set()
+                # Lambda required because list access must be revaluated each time
+                # pylint: disable=unnecessary-lambda
+                await try_until_success(lambda: continue_triggers[1].set())
+                await asyncio.gather(*select_tasks)
+
+    @pytest.mark.asyncio
+    async def test_executes_different_commands_in_parallel(self):
+        continue_fetch = Event()
+        continue_store = Event()
+        num_commands_received_condition = Condition()
+        num_commands_received = 0
+
+        async def fetch_handler():
+            nonlocal num_commands_received
+            logger.debug("fetch handle")
+            async with num_commands_received_condition:
+                num_commands_received += 1
+                num_commands_received_condition.notify_all()
+            await continue_fetch.wait()
+
+        async def store_handler():
+            nonlocal num_commands_received
+            logger.debug("store handle")
+            async with num_commands_received_condition:
+                num_commands_received += 1
+                num_commands_received_condition.notify_all()
+            await continue_store.wait()
+
+        async with MockImapServer(
+            host="localhost",
+            port=4143,
+            command_handlers={b"FETCH": fetch_handler, b"UID": store_handler},
+        ) as mock_server:
+            async with ImapClient(mock_server.connection_config) as client:
+                await client.select("INBOX")
+                tasks = [
+                    create_task(client.fetch(b"1", b"(UID)")),
+                    create_task(client.uid_store(123, rb"+FLAGS (\Seen)")),
+                ]
+                async with num_commands_received_condition:
+                    await asyncio.wait_for(
+                        num_commands_received_condition.wait_for(
+                            lambda: num_commands_received >= 2
+                        ),
+                        timeout=5,
+                    )
+                continue_store.set()
+                continue_fetch.set()
+                await asyncio.gather(*tasks)
+
+
+class MockImapServer:
+    def __init__(
+        self,
+        host: str = "localhost",
+        port: int = 4143,
+        command_handlers: Dict[bytes, Callable[[], Coroutine]] = None,
+    ):
+        self.host = host
+        self.port = port
+        self.command_handlers = command_handlers or {}
+        self._server = None
+        self._write_lock = asyncio.Lock()
+
+    @property
+    def connection_config(self) -> ConnectionConfig:
+        return ConnectionConfig(
+            "username", "password", self.host, self.port, use_ssl=False
+        )
+
+    async def __aenter__(self):
+        self._server = await start_server(
+            self._client_connected_cb, host="localhost", port=4143
+        )
+        await self._server.__aenter__()
+        return self
+
+    async def __aexit__(self, exc_type, exc, traceback):
+        return await self._server.__aexit__(exc_type, exc, traceback)
+
+    async def _client_connected_cb(self, reader: StreamReader, writer: StreamWriter):
+        writer.write(b"* OK hello\r\n")
+        await writer.drain()
+
+        while not reader.at_eof():
+            line = await reader.readline()
+            logger.debug("MockImapServer received: %s", line)
+            parsed = re.match(
+                rb"^(?P<tag>\w+)\s+(?P<command>\w+)(?P<remainder>.*)$", line
+            )
+            if not parsed:
+                continue
+            tag, command, remainder = (
+                parsed.group("tag"),
+                parsed.group("command"),
+                parsed.group("remainder") + b"\n",
+            )
+            async with self._write_lock:
+                while remainder.endswith(b"}\r\n"):
+                    writer.write(b"+ OK continue\r\n")
+                    await writer.drain()
+                    remainder += await reader.readline()
+
+            asyncio.create_task(self._finish_command_handling(tag, command, writer))
+
+    async def _finish_command_handling(
+        self, tag: bytes, command: bytes, writer: StreamWriter
+    ):
+        handled = False
+        if command in self.command_handlers:
+            handled = True
+            await self.command_handlers[command]()
+
+        async with self._write_lock:
+            if handled:
+                pass
+            elif command == b"CAPABILITY":
+                writer.write(b"* CAPABILITY IMAP4rev1\r\n")
+            elif command == b"LOGOUT":
+                writer.write(b"* BYE see you soon\r\n")
+            writer.write(b" ".join((tag, b"OK", command, b"completed\r\n")))
+
+            if command == b"LOGOUT":
+                writer.write_eof()
+            await writer.drain()
