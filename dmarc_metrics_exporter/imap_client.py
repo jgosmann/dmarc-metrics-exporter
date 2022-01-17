@@ -260,11 +260,11 @@ class ImapClient:
         self, name: str, write_command: Callable[[_ImapCommandWriter], Coroutine]
     ):
         assert self._writer
+        tag = _ImapTag(next(self._tag_gen))
+        self._tag_completions[tag.name] = tag
+        wait_response = asyncio.ensure_future(tag.wait_response())
         try:
             await self._ongoing_commands.acquire(name)
-            tag = _ImapTag(next(self._tag_gen))
-            self._tag_completions[tag.name] = tag
-            wait_response = asyncio.ensure_future(tag.wait_response())
 
             async with self._command_lock:
                 self._writer.write(tag.name)
@@ -289,8 +289,10 @@ class ImapClient:
 
             if tag.state and not tag.state.upper() == b"OK":
                 raise ImapServerError(name, tag.state, tag.text)
-            del self._tag_completions[tag.name]
         finally:
+            del self._tag_completions[tag.name]
+            if not wait_response.done():
+                wait_response.cancel()
             await self._ongoing_commands.release(name)
 
     async def _login(self, username: str, password: str):
