@@ -200,7 +200,7 @@ class TestImapClient:
                 await client.delete("destination")
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="Feature not supported by Greenmail.")
+    @pytest.mark.xfail(reason="Feature not supported by Greenmail.", run=False)
     async def test_uid_move(self, greenmail):
         await send_email(create_minimal_email(greenmail.imap.username), greenmail.smtp)
         async with ImapClient(greenmail.imap) as client:
