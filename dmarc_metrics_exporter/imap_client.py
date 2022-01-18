@@ -202,16 +202,20 @@ class ImapClient:
         )
         self._process_responses_task = create_task(self._process_responses(reader))
 
-        await wait_for(self._server_ready.wait(), self.timeout_seconds)
-        logger.debug("IMAP server ready.")
-        await wait_for(
-            self._capability(),
-            self.timeout_seconds,
-        )
-        await wait_for(
-            self._login(self.connection.username, self.connection.password),
-            self.timeout_seconds,
-        )
+        try:
+            await wait_for(self._server_ready.wait(), self.timeout_seconds)
+            logger.debug("IMAP server ready.")
+            await wait_for(
+                self._capability(),
+                self.timeout_seconds,
+            )
+            await wait_for(
+                self._login(self.connection.username, self.connection.password),
+                self.timeout_seconds,
+            )
+        except:
+            self._process_responses_task.cancel()
+            raise
         return self
 
     async def __aexit__(self, exc_type, exc, traceback):

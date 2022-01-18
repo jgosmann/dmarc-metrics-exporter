@@ -345,6 +345,35 @@ class TestImapClient:
                 continue_fetch.set()
                 await asyncio.gather(*tasks)
 
+    @pytest.mark.asyncio
+    async def test_timeout_behavior_waiting_for_server_ready(self):
+        event = Event()
+
+        async def client_connected_cb(reader: StreamReader, writer: StreamWriter):
+            await event.wait()
+
+        server = await start_server(client_connected_cb, host="localhost", port=4143)
+
+        async def connect():
+            try:
+                async with ImapClient(
+                    ConnectionConfig(
+                        "username",
+                        "password",
+                        host="localhost",
+                        port=4143,
+                        use_ssl=False,
+                    ),
+                    timeout_seconds=0.2,
+                ):
+                    pass
+            except asyncio.TimeoutError:
+                pass
+
+        async with server:
+            await asyncio.wait_for(connect(), timeout=1)
+            event.set()
+
 
 class MockImapServer:
     def __init__(
@@ -404,9 +433,10 @@ class MockImapServer:
         self, tag: bytes, command: bytes, writer: StreamWriter
     ):
         handled = False
+        suppress_tagged_response = False
         if command in self.command_handlers:
             handled = True
-            await self.command_handlers[command]()
+            suppress_tagged_response = await self.command_handlers[command]()
 
         async with self._write_lock:
             if handled:
@@ -415,8 +445,9 @@ class MockImapServer:
                 writer.write(b"* CAPABILITY IMAP4rev1\r\n")
             elif command == b"LOGOUT":
                 writer.write(b"* BYE see you soon\r\n")
-            writer.write(b" ".join((tag, b"OK", command, b"completed\r\n")))
 
-            if command == b"LOGOUT":
-                writer.write_eof()
+            if not suppress_tagged_response:
+                writer.write(b" ".join((tag, b"OK", command, b"completed\r\n")))
+                if command == b"LOGOUT":
+                    writer.write_eof()
             await writer.drain()
