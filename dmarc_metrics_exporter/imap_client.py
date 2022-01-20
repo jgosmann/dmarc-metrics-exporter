@@ -132,17 +132,21 @@ class _ImapTag:
 
 
 class _ImapCommandWriter:
-    def __init__(self, writer: StreamWriter, server_ready: Event):
+    def __init__(self, writer: StreamWriter, server_ready: Event, timeout_seconds: int):
         self.writer = writer
         self._server_ready = server_ready
+        self.timeout_seconds = timeout_seconds
+
+    async def _drain(self):
+        await asyncio.wait_for(self.writer.drain(), timeout=self.timeout_seconds)
 
     async def write_raw(self, buf: bytes):
         self.writer.write(buf)
-        await self.writer.drain()
+        await self._drain()
 
     async def write_int(self, num: int):
         self.writer.write(str(num).encode("ascii"))
-        await self.writer.drain()
+        await self._drain()
 
     async def write_string_literal(self, string: str):
         encoded = string.encode("utf-8")
@@ -150,10 +154,11 @@ class _ImapCommandWriter:
         self.writer.write(b"{")
         self.writer.write(str(len(encoded)).encode("ascii"))
         self.writer.write(b"}\r\n")
-        await self.writer.drain()
+        await self._drain()
         await self._server_ready.wait()
+
         self.writer.write(encoded)
-        await self.writer.drain()
+        await self._drain()
 
 
 class _CommandsInUse:
@@ -268,7 +273,9 @@ class ImapClient:
             async with self._command_lock:
                 self._writer.write(tag.name)
                 self._writer.write(b" ")
-                cmd_writer = _ImapCommandWriter(self._writer, self._server_ready)
+                cmd_writer = _ImapCommandWriter(
+                    self._writer, self._server_ready, self.timeout_seconds
+                )
                 _, pending = await asyncio.wait(
                     [write_command(cmd_writer), wait_response],
                     return_when=asyncio.FIRST_COMPLETED,
