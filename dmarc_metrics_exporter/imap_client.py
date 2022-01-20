@@ -205,14 +205,8 @@ class ImapClient:
         try:
             await wait_for(self._server_ready.wait(), self.timeout_seconds)
             logger.debug("IMAP server ready.")
-            await wait_for(
-                self._capability(),
-                self.timeout_seconds,
-            )
-            await wait_for(
-                self._login(self.connection.username, self.connection.password),
-                self.timeout_seconds,
-            )
+            await self._capability()
+            await self._login(self.connection.username, self.connection.password)
         except:
             self._process_responses_task.cancel()
             raise

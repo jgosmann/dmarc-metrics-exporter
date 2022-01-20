@@ -271,7 +271,7 @@ class TestImapClient:
         continue_triggers_change = Condition()
         continue_triggers = []
 
-        async def select_handler():
+        async def select_handler(_: StreamWriter):
             continue_event = Event()
             async with continue_triggers_change:
                 continue_triggers.append(continue_event)
@@ -307,7 +307,7 @@ class TestImapClient:
         num_commands_received_condition = Condition()
         num_commands_received = 0
 
-        async def fetch_handler():
+        async def fetch_handler(_: StreamWriter):
             nonlocal num_commands_received
             logger.debug("fetch handle")
             async with num_commands_received_condition:
@@ -315,7 +315,7 @@ class TestImapClient:
                 num_commands_received_condition.notify_all()
             await continue_fetch.wait()
 
-        async def store_handler():
+        async def store_handler(_: StreamWriter):
             nonlocal num_commands_received
             logger.debug("store handle")
             async with num_commands_received_condition:
@@ -374,13 +374,88 @@ class TestImapClient:
             await asyncio.wait_for(connect(), timeout=1)
             event.set()
 
+    @pytest.mark.asyncio
+    async def test_command_timeout_no_response_at_all(self):
+        async def select_handler():
+            return True
+
+        async with MockImapServer(
+            host="localhost",
+            port=4143,
+            command_handlers={b"SELECT": select_handler},
+        ) as mock_server:
+            async with ImapClient(
+                mock_server.connection_config,
+                timeout_seconds=0.2,
+            ) as client:
+
+                async def run_command():
+                    try:
+                        await client.select()
+                    except asyncio.TimeoutError:
+                        pass
+
+            await asyncio.wait_for(run_command(), timeout=1)
+
+    @pytest.mark.asyncio
+    async def test_command_timeout_single_untagged_response_only(self):
+        async def select_handler(writer: StreamWriter):
+            writer.write(b"* 42 EXISTS\r\n")
+            await writer.drain()
+            return True
+
+        async with MockImapServer(
+            host="localhost",
+            port=4143,
+            command_handlers={b"SELECT": select_handler},
+        ) as mock_server:
+            async with ImapClient(
+                mock_server.connection_config,
+                timeout_seconds=0.2,
+            ) as client:
+
+                async def run_command():
+                    try:
+                        await client.select()
+                    except asyncio.TimeoutError:
+                        pass
+
+            await asyncio.wait_for(run_command(), timeout=1)
+
+    @pytest.mark.asyncio
+    async def test_command_not_timing_out_if_interresponse_time_stays_below_threshold(
+        self,
+    ):
+        async def select_handler(writer: StreamWriter):
+            await asyncio.sleep(0.1)
+            writer.write(b"* 42 EXISTS\r\n")
+            await writer.drain()
+            await asyncio.sleep(0.1)
+            writer.write(b"* 42 RECENT\r\n")
+            await writer.drain()
+            await asyncio.sleep(0.1)
+            writer.write(b"* OK UNSEEN 23\r\n")
+            await writer.drain()
+            await asyncio.sleep(0.1)
+
+        async with MockImapServer(
+            host="localhost",
+            port=4143,
+            command_handlers={b"SELECT": select_handler},
+        ) as mock_server:
+            async with ImapClient(
+                mock_server.connection_config,
+                timeout_seconds=0.2,
+            ) as client:
+                assert await client.select() == 42
+
 
 class MockImapServer:
     def __init__(
         self,
         host: str = "localhost",
         port: int = 4143,
-        command_handlers: Dict[bytes, Callable[[], Coroutine]] = None,
+        command_handlers: Dict[bytes, Callable[[StreamWriter], Coroutine]] = None,
     ):
         self.host = host
         self.port = port
@@ -436,7 +511,7 @@ class MockImapServer:
         suppress_tagged_response = False
         if command in self.command_handlers:
             handled = True
-            suppress_tagged_response = await self.command_handlers[command]()
+            suppress_tagged_response = await self.command_handlers[command](writer)
 
         async with self._write_lock:
             if handled:
