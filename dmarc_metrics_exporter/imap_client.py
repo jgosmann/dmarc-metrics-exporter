@@ -222,6 +222,7 @@ class ImapClient:
         if not self._writer.is_closing():
             await wait_for(self._logout(), self.timeout_seconds)
             self._writer.close()
+            await self._writer.wait_closed()
         await self._process_responses_task
         self._server_ready.clear()
 
