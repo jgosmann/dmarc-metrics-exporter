@@ -61,38 +61,38 @@ class MockReader:
     [
         (
             b"+ Ready for additional input\r\n",
-            [(ResponseType.ContinueReq, b"Ready for additional input\r\n")],
+            [(ResponseType.CONTINUE_REQ, b"Ready for additional input\r\n")],
         ),
         (
             b"* some untagged one line response\r\n",
-            [(ResponseType.Untagged, b"some untagged one line response\r\n")],
+            [(ResponseType.UNTAGGED, b"some untagged one line response\r\n")],
         ),
         (
             (b"* some untagged {23}\r\n+ multiline\r\n* response\r\n"),
             [
                 (
-                    ResponseType.Untagged,
+                    ResponseType.UNTAGGED,
                     b"some untagged {23}\r\n+ multiline\r\n* response\r\n",
                 )
             ],
         ),
         (
             b"tag123 OK some text\r\n",
-            [(ResponseType.Tagged, b"tag123 OK some text\r\n")],
+            [(ResponseType.TAGGED, b"tag123 OK some text\r\n")],
         ),
         (
             b"tag123 OK [FOO bar] some text\r\n",
-            [(ResponseType.Tagged, b"tag123 OK [FOO bar] some text\r\n")],
+            [(ResponseType.TAGGED, b"tag123 OK [FOO bar] some text\r\n")],
         ),
         (
             b"tag123 OK [UIDNEXT 456] some text\r\n",
-            [(ResponseType.Tagged, b"tag123 OK [UIDNEXT 456] some text\r\n")],
+            [(ResponseType.TAGGED, b"tag123 OK [UIDNEXT 456] some text\r\n")],
         ),
         (
             b"tag123 OK [BADCHARSET ({8}\r\nfoo\r\nbar)] some text\r\n",
             [
                 (
-                    ResponseType.Tagged,
+                    ResponseType.TAGGED,
                     b"tag123 OK [BADCHARSET ({8}\r\nfoo\r\nbar)] some text\r\n",
                 )
             ],
@@ -103,10 +103,10 @@ class MockReader:
             ),
             [
                 (
-                    ResponseType.Untagged,
+                    ResponseType.UNTAGGED,
                     b"some untagged {23}\r\n+ multiline\r\n* response\r\n",
                 ),
-                (ResponseType.Tagged, b"tag123 OK some text\r\n"),
+                (ResponseType.TAGGED, b"tag123 OK some text\r\n"),
             ],
         ),
     ],
@@ -133,321 +133,332 @@ async def test_imap_reader_parse_error(input_buf):
         await respone_generator.__anext__()
 
 
-class TestImapClient:
-    @pytest.mark.asyncio
-    async def test_basic_connection(self, greenmail):
-        async with ImapClient(greenmail.imap) as client:
-            assert client.has_capability("IMAP4rev1")
+@pytest.mark.asyncio
+async def test_basic_connection(greenmail):
+    async with ImapClient(greenmail.imap) as client:
+        assert client.has_capability("IMAP4rev1")
 
-    @pytest.mark.asyncio
-    async def test_fetch(self, greenmail):
-        await send_email(create_minimal_email(greenmail.imap.username), greenmail.smtp)
-        async with ImapClient(greenmail.imap) as client:
-            assert await client.select("INBOX") == 1
-            await client.fetch(b"1:1", b"(BODY[HEADER.FIELDS (SUBJECT)])")
-            fetched_email = await wait_for(client.fetched_queue.get(), 5)
-            assert fetched_email[:2] == [1, "FETCH"]
-            assert [
-                value
-                for key, value in fetched_email[2]
-                if key[:2] == ["BODY", "HEADER.FIELDS"]
-            ] == ["Subject: Minimal email\r\n"]
 
-    @pytest.mark.asyncio
-    async def test_create_delete(self, greenmail):
-        async with ImapClient(greenmail.imap) as client:
-            try:
-                await client.delete("new mailbox")
-            except ImapServerError:
-                pass
+@pytest.mark.asyncio
+async def test_fetch(greenmail):
+    await send_email(create_minimal_email(greenmail.imap.username), greenmail.smtp)
+    async with ImapClient(greenmail.imap) as client:
+        assert await client.select("INBOX") == 1
+        await client.fetch(b"1:1", b"(BODY[HEADER.FIELDS (SUBJECT)])")
+        fetched_email = await wait_for(client.fetched_queue.get(), 5)
+        assert fetched_email[:2] == [1, "FETCH"]
+        assert [
+            value
+            for key, value in fetched_email[2]
+            if key[:2] == ["BODY", "HEADER.FIELDS"]
+        ] == ["Subject: Minimal email\r\n"]
 
-            try:
-                await client.create("new mailbox")
-                assert await client.select("new mailbox") == 0
-            finally:
-                await client.select("INBOX")
-                await client.delete("new mailbox")
 
-            with pytest.raises(ImapServerError):
-                await client.select("new mailbox")
+@pytest.mark.asyncio
+async def test_create_delete(greenmail):
+    async with ImapClient(greenmail.imap) as client:
+        try:
+            await client.delete("new mailbox")
+        except ImapServerError:
+            pass
 
-    @pytest.mark.asyncio
-    async def test_create_if_not_exists(self, greenmail):
-        async with ImapClient(greenmail.imap) as client:
-            try:
-                await client.create_if_not_exists("new mailbox")
-                await client.create_if_not_exists("new mailbox")
-                assert await client.select("new mailbox") == 0
-            finally:
-                await client.select("INBOX")
-                await client.delete("new mailbox")
+        try:
+            await client.create("new mailbox")
+            assert await client.select("new mailbox") == 0
+        finally:
+            await client.select("INBOX")
+            await client.delete("new mailbox")
 
-    @pytest.mark.asyncio
-    async def test_uid_copy(self, greenmail):
-        await send_email(create_minimal_email(greenmail.imap.username), greenmail.smtp)
-        async with ImapClient(greenmail.imap) as client:
-            try:
-                await client.create_if_not_exists("destination")
-                assert await client.select("INBOX") == 1
-                await client.fetch(b"1:1", b"(UID)")
-                fetched_email = await wait_for(client.fetched_queue.get(), 5)
-                assert fetched_email[:2] == [1, "FETCH"]
-                uid = [value for key, value in fetched_email[2] if key == "UID"][0]
-                await client.uid_copy(uid, "destination")
-                assert await client.select("destination") == 1
-            finally:
-                await client.select("INBOX")
-                await client.delete("destination")
+        with pytest.raises(ImapServerError):
+            await client.select("new mailbox")
 
-    @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="Feature not supported by Greenmail.", run=False)
-    async def test_uid_move(self, greenmail):
-        await send_email(create_minimal_email(greenmail.imap.username), greenmail.smtp)
-        async with ImapClient(greenmail.imap) as client:
-            try:
-                await client.create_if_not_exists("destination")
-                assert await client.select("INBOX") == 1
-                await client.fetch(b"1:1", b"(UID)")
-                fetched_email = await wait_for(client.fetched_queue.get(), 5)
-                assert fetched_email[:2] == [1, "FETCH"]
-                uid = [value for key, value in fetched_email[2] if key == "UID"][0]
-                await client.uid_move(uid, "destination")
-                assert client.num_exists == 0
-                assert await client.select("destination") == 1
-            finally:
-                await client.select("INBOX")
-                await client.delete("destination")
 
-    @pytest.mark.asyncio
-    async def test_uid_move_graceful(self, greenmail):
-        await send_email(create_minimal_email(greenmail.imap.username), greenmail.smtp)
-        async with ImapClient(greenmail.imap) as client:
-            try:
-                await client.create_if_not_exists("destination")
-                assert await client.select("INBOX") == 1
-                await client.fetch(b"1:1", b"(UID)")
-                fetched_email = await wait_for(client.fetched_queue.get(), 5)
-                assert fetched_email[:2] == [1, "FETCH"]
-                uid = [value for key, value in fetched_email[2] if key == "UID"][0]
-                await client.uid_move_graceful(uid, "destination")
-                assert client.num_exists == 0
-                assert await client.select("destination") == 1
-            finally:
-                await client.select("INBOX")
-                await client.delete("destination")
+@pytest.mark.asyncio
+async def test_create_if_not_exists(greenmail):
+    async with ImapClient(greenmail.imap) as client:
+        try:
+            await client.create_if_not_exists("new mailbox")
+            await client.create_if_not_exists("new mailbox")
+            assert await client.select("new mailbox") == 0
+        finally:
+            await client.select("INBOX")
+            await client.delete("new mailbox")
 
-    @pytest.mark.asyncio
-    async def test_uid_store(self, greenmail):
-        await send_email(create_minimal_email(greenmail.imap.username), greenmail.smtp)
-        async with ImapClient(greenmail.imap) as client:
+
+@pytest.mark.asyncio
+async def test_uid_copy(greenmail):
+    await send_email(create_minimal_email(greenmail.imap.username), greenmail.smtp)
+    async with ImapClient(greenmail.imap) as client:
+        try:
+            await client.create_if_not_exists("destination")
             assert await client.select("INBOX") == 1
             await client.fetch(b"1:1", b"(UID)")
             fetched_email = await wait_for(client.fetched_queue.get(), 5)
             assert fetched_email[:2] == [1, "FETCH"]
             uid = [value for key, value in fetched_email[2] if key == "UID"][0]
-            await client.uid_store(uid, rb"+FLAGS (\Deleted)")
+            await client.uid_copy(uid, "destination")
+            assert await client.select("destination") == 1
+        finally:
+            await client.select("INBOX")
+            await client.delete("destination")
 
-            fetched_email = await wait_for(client.fetched_queue.get(), 5)
-            assert fetched_email[:2] == [1, "FETCH"]
-            assert [value for key, value in fetched_email[2] if key == "FLAGS"][
-                0
-            ].as_list() == ["\\Deleted"]
 
-    @pytest.mark.asyncio
-    async def test_uid_expunge(self, greenmail):
-        await send_email(create_minimal_email(greenmail.imap.username), greenmail.smtp)
-        async with ImapClient(greenmail.imap) as client:
+@pytest.mark.asyncio
+@pytest.mark.xfail(reason="Feature not supported by Greenmail.", run=False)
+async def test_uid_move(greenmail):
+    await send_email(create_minimal_email(greenmail.imap.username), greenmail.smtp)
+    async with ImapClient(greenmail.imap) as client:
+        try:
+            await client.create_if_not_exists("destination")
             assert await client.select("INBOX") == 1
             await client.fetch(b"1:1", b"(UID)")
             fetched_email = await wait_for(client.fetched_queue.get(), 5)
             assert fetched_email[:2] == [1, "FETCH"]
             uid = [value for key, value in fetched_email[2] if key == "UID"][0]
-            await client.uid_store(uid, rb"+FLAGS (\Deleted)")
-            await client.expunge()
+            await client.uid_move(uid, "destination")
             assert client.num_exists == 0
+            assert await client.select("destination") == 1
+        finally:
+            await client.select("INBOX")
+            await client.delete("destination")
 
-    @pytest.mark.asyncio
-    async def test_executes_same_command_type_sequentially(self):
-        continue_triggers_change = Condition()
-        continue_triggers = []
 
-        async def select_handler(_: StreamWriter):
-            continue_event = Event()
+@pytest.mark.asyncio
+async def test_uid_move_graceful(greenmail):
+    await send_email(create_minimal_email(greenmail.imap.username), greenmail.smtp)
+    async with ImapClient(greenmail.imap) as client:
+        try:
+            await client.create_if_not_exists("destination")
+            assert await client.select("INBOX") == 1
+            await client.fetch(b"1:1", b"(UID)")
+            fetched_email = await wait_for(client.fetched_queue.get(), 5)
+            assert fetched_email[:2] == [1, "FETCH"]
+            uid = [value for key, value in fetched_email[2] if key == "UID"][0]
+            await client.uid_move_graceful(uid, "destination")
+            assert client.num_exists == 0
+            assert await client.select("destination") == 1
+        finally:
+            await client.select("INBOX")
+            await client.delete("destination")
+
+
+@pytest.mark.asyncio
+async def test_uid_store(greenmail):
+    await send_email(create_minimal_email(greenmail.imap.username), greenmail.smtp)
+    async with ImapClient(greenmail.imap) as client:
+        assert await client.select("INBOX") == 1
+        await client.fetch(b"1:1", b"(UID)")
+        fetched_email = await wait_for(client.fetched_queue.get(), 5)
+        assert fetched_email[:2] == [1, "FETCH"]
+        uid = [value for key, value in fetched_email[2] if key == "UID"][0]
+        await client.uid_store(uid, rb"+FLAGS (\Deleted)")
+
+        fetched_email = await wait_for(client.fetched_queue.get(), 5)
+        assert fetched_email[:2] == [1, "FETCH"]
+        assert [value for key, value in fetched_email[2] if key == "FLAGS"][
+            0
+        ].as_list() == ["\\Deleted"]
+
+
+@pytest.mark.asyncio
+async def test_uid_expunge(greenmail):
+    await send_email(create_minimal_email(greenmail.imap.username), greenmail.smtp)
+    async with ImapClient(greenmail.imap) as client:
+        assert await client.select("INBOX") == 1
+        await client.fetch(b"1:1", b"(UID)")
+        fetched_email = await wait_for(client.fetched_queue.get(), 5)
+        assert fetched_email[:2] == [1, "FETCH"]
+        uid = [value for key, value in fetched_email[2] if key == "UID"][0]
+        await client.uid_store(uid, rb"+FLAGS (\Deleted)")
+        await client.expunge()
+        assert client.num_exists == 0
+
+
+@pytest.mark.asyncio
+async def test_executes_same_command_type_sequentially():
+    continue_triggers_change = Condition()
+    continue_triggers = []
+
+    async def select_handler(_: StreamWriter):
+        continue_event = Event()
+        async with continue_triggers_change:
+            continue_triggers.append(continue_event)
+            continue_triggers_change.notify_all()
+        await continue_event.wait()
+
+    async with MockImapServer(
+        host="localhost", port=4143, command_handlers={b"SELECT": select_handler}
+    ) as mock_server:
+        async with ImapClient(mock_server.connection_config) as client:
+            select_tasks = [
+                create_task(client.select("INBOX")),
+                create_task(client.select("foo")),
+            ]
             async with continue_triggers_change:
-                continue_triggers.append(continue_event)
-                continue_triggers_change.notify_all()
-            await continue_event.wait()
-
-        async with MockImapServer(
-            host="localhost", port=4143, command_handlers={b"SELECT": select_handler}
-        ) as mock_server:
-            async with ImapClient(mock_server.connection_config) as client:
-                select_tasks = [
-                    create_task(client.select("INBOX")),
-                    create_task(client.select("foo")),
-                ]
-                async with continue_triggers_change:
-                    await asyncio.wait_for(
-                        continue_triggers_change.wait_for(
-                            lambda: len(continue_triggers) >= 1
-                        ),
-                        timeout=5,
-                    )
-                assert len(continue_triggers) == 1
-                continue_triggers[0].set()
-                # Lambda required because list access must be revaluated each time
-                # pylint: disable=unnecessary-lambda
-                await try_until_success(lambda: continue_triggers[1].set())
-                await asyncio.gather(*select_tasks)
-
-    @pytest.mark.asyncio
-    async def test_executes_different_commands_in_parallel(self):
-        continue_fetch = Event()
-        continue_store = Event()
-        num_commands_received_condition = Condition()
-        num_commands_received = 0
-
-        async def fetch_handler(_: StreamWriter):
-            nonlocal num_commands_received
-            logger.debug("fetch handle")
-            async with num_commands_received_condition:
-                num_commands_received += 1
-                num_commands_received_condition.notify_all()
-            await continue_fetch.wait()
-
-        async def store_handler(_: StreamWriter):
-            nonlocal num_commands_received
-            logger.debug("store handle")
-            async with num_commands_received_condition:
-                num_commands_received += 1
-                num_commands_received_condition.notify_all()
-            await continue_store.wait()
-
-        async with MockImapServer(
-            host="localhost",
-            port=4143,
-            command_handlers={b"FETCH": fetch_handler, b"UID": store_handler},
-        ) as mock_server:
-            async with ImapClient(mock_server.connection_config) as client:
-                await client.select("INBOX")
-                tasks = [
-                    create_task(client.fetch(b"1", b"(UID)")),
-                    create_task(client.uid_store(123, rb"+FLAGS (\Seen)")),
-                ]
-                async with num_commands_received_condition:
-                    await asyncio.wait_for(
-                        num_commands_received_condition.wait_for(
-                            lambda: num_commands_received >= 2
-                        ),
-                        timeout=5,
-                    )
-                continue_store.set()
-                continue_fetch.set()
-                await asyncio.gather(*tasks)
-
-    @pytest.mark.asyncio
-    async def test_timeout_behavior_waiting_for_server_ready(self):
-        event = Event()
-
-        async def client_connected_cb(reader: StreamReader, writer: StreamWriter):
-            await event.wait()
-
-        server = await start_server(client_connected_cb, host="localhost", port=4143)
-
-        async def connect():
-            try:
-                async with ImapClient(
-                    ConnectionConfig(
-                        "username",
-                        "password",
-                        host="localhost",
-                        port=4143,
-                        use_ssl=False,
+                await asyncio.wait_for(
+                    continue_triggers_change.wait_for(
+                        lambda: len(continue_triggers) >= 1
                     ),
-                    timeout_seconds=0.2,
-                ):
-                    pass
-            except asyncio.TimeoutError:
+                    timeout=5,
+                )
+            assert len(continue_triggers) == 1
+            continue_triggers[0].set()
+            # Lambda required because list access must be revaluated each time
+            # pylint: disable=unnecessary-lambda
+            await try_until_success(lambda: continue_triggers[1].set())
+            await asyncio.gather(*select_tasks)
+
+
+@pytest.mark.asyncio
+async def test_executes_different_commands_in_parallel():
+    continue_fetch = Event()
+    continue_store = Event()
+    num_commands_received_condition = Condition()
+    num_commands_received = 0
+
+    async def fetch_handler(_: StreamWriter):
+        nonlocal num_commands_received
+        logger.debug("fetch handle")
+        async with num_commands_received_condition:
+            num_commands_received += 1
+            num_commands_received_condition.notify_all()
+        await continue_fetch.wait()
+
+    async def store_handler(_: StreamWriter):
+        nonlocal num_commands_received
+        logger.debug("store handle")
+        async with num_commands_received_condition:
+            num_commands_received += 1
+            num_commands_received_condition.notify_all()
+        await continue_store.wait()
+
+    async with MockImapServer(
+        host="localhost",
+        port=4143,
+        command_handlers={b"FETCH": fetch_handler, b"UID": store_handler},
+    ) as mock_server:
+        async with ImapClient(mock_server.connection_config) as client:
+            await client.select("INBOX")
+            tasks = [
+                create_task(client.fetch(b"1", b"(UID)")),
+                create_task(client.uid_store(123, rb"+FLAGS (\Seen)")),
+            ]
+            async with num_commands_received_condition:
+                await asyncio.wait_for(
+                    num_commands_received_condition.wait_for(
+                        lambda: num_commands_received >= 2
+                    ),
+                    timeout=5,
+                )
+            continue_store.set()
+            continue_fetch.set()
+            await asyncio.gather(*tasks)
+
+
+@pytest.mark.asyncio
+async def test_timeout_behavior_waiting_for_server_ready():
+    event = Event()
+
+    async def client_connected_cb(reader: StreamReader, writer: StreamWriter):
+        await event.wait()
+
+    server = await start_server(client_connected_cb, host="localhost", port=4143)
+
+    async def connect():
+        try:
+            async with ImapClient(
+                ConnectionConfig(
+                    "username",
+                    "password",
+                    host="localhost",
+                    port=4143,
+                    use_ssl=False,
+                ),
+                timeout_seconds=0.2,
+            ):
                 pass
+        except asyncio.TimeoutError:
+            pass
 
-        async with server:
-            await asyncio.wait_for(connect(), timeout=1)
-            event.set()
+    async with server:
+        await asyncio.wait_for(connect(), timeout=1)
+        event.set()
 
-    @pytest.mark.asyncio
-    async def test_command_timeout_no_response_at_all(self):
-        async def select_handler():
-            return True
 
-        async with MockImapServer(
-            host="localhost",
-            port=4143,
-            command_handlers={b"SELECT": select_handler},
-        ) as mock_server:
-            async with ImapClient(
-                mock_server.connection_config,
-                timeout_seconds=0.2,
-            ) as client:
+@pytest.mark.asyncio
+async def test_command_timeout_no_response_at_all():
+    async def select_handler():
+        return True
 
-                async def run_command():
-                    try:
-                        await client.select()
-                    except asyncio.TimeoutError:
-                        pass
+    async with MockImapServer(
+        host="localhost",
+        port=4143,
+        command_handlers={b"SELECT": select_handler},
+    ) as mock_server:
+        async with ImapClient(
+            mock_server.connection_config,
+            timeout_seconds=0.2,
+        ) as client:
 
-            await asyncio.wait_for(run_command(), timeout=1)
+            async def run_command():
+                try:
+                    await client.select()
+                except asyncio.TimeoutError:
+                    pass
 
-    @pytest.mark.asyncio
-    async def test_command_timeout_single_untagged_response_only(self):
-        async def select_handler(writer: StreamWriter):
-            writer.write(b"* 42 EXISTS\r\n")
-            await writer.drain()
-            return True
+        await asyncio.wait_for(run_command(), timeout=1)
 
-        async with MockImapServer(
-            host="localhost",
-            port=4143,
-            command_handlers={b"SELECT": select_handler},
-        ) as mock_server:
-            async with ImapClient(
-                mock_server.connection_config,
-                timeout_seconds=0.2,
-            ) as client:
 
-                async def run_command():
-                    try:
-                        await client.select()
-                    except asyncio.TimeoutError:
-                        pass
+@pytest.mark.asyncio
+async def test_command_timeout_single_untagged_response_only():
+    async def select_handler(writer: StreamWriter):
+        writer.write(b"* 42 EXISTS\r\n")
+        await writer.drain()
+        return True
 
-            await asyncio.wait_for(run_command(), timeout=1)
+    async with MockImapServer(
+        host="localhost",
+        port=4143,
+        command_handlers={b"SELECT": select_handler},
+    ) as mock_server:
+        async with ImapClient(
+            mock_server.connection_config,
+            timeout_seconds=0.2,
+        ) as client:
 
-    @pytest.mark.asyncio
-    async def test_command_not_timing_out_if_interresponse_time_stays_below_threshold(
-        self,
-    ):
-        async def select_handler(writer: StreamWriter):
-            await asyncio.sleep(0.1)
-            writer.write(b"* 42 EXISTS\r\n")
-            await writer.drain()
-            await asyncio.sleep(0.1)
-            writer.write(b"* 42 RECENT\r\n")
-            await writer.drain()
-            await asyncio.sleep(0.1)
-            writer.write(b"* OK UNSEEN 23\r\n")
-            await writer.drain()
-            await asyncio.sleep(0.1)
+            async def run_command():
+                try:
+                    await client.select()
+                except asyncio.TimeoutError:
+                    pass
 
-        async with MockImapServer(
-            host="localhost",
-            port=4143,
-            command_handlers={b"SELECT": select_handler},
-        ) as mock_server:
-            async with ImapClient(
-                mock_server.connection_config,
-                timeout_seconds=0.2,
-            ) as client:
-                assert await client.select() == 42
+        await asyncio.wait_for(run_command(), timeout=1)
+
+
+@pytest.mark.asyncio
+async def test_command_not_timing_out_if_interresponse_time_stays_below_threshold():
+    async def select_handler(writer: StreamWriter):
+        await asyncio.sleep(0.1)
+        writer.write(b"* 42 EXISTS\r\n")
+        await writer.drain()
+        await asyncio.sleep(0.1)
+        writer.write(b"* 42 RECENT\r\n")
+        await writer.drain()
+        await asyncio.sleep(0.1)
+        writer.write(b"* OK UNSEEN 23\r\n")
+        await writer.drain()
+        await asyncio.sleep(0.1)
+
+    async with MockImapServer(
+        host="localhost",
+        port=4143,
+        command_handlers={b"SELECT": select_handler},
+    ) as mock_server:
+        async with ImapClient(
+            mock_server.connection_config,
+            timeout_seconds=0.2,
+        ) as client:
+            assert await client.select() == 42
 
 
 class MockImapServer:

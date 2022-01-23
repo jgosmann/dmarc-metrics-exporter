@@ -65,9 +65,9 @@ class IncompleteResponse(ImapError):
 
 
 class ResponseType(Enum):
-    ContinueReq = "+"
-    Untagged = "*"
-    Tagged = "tagged"
+    CONTINUE_REQ = "+"
+    UNTAGGED = "*"
+    TAGGED = "tagged"
 
 
 def _parses_as_tagged_response(line: bytes) -> bool:
@@ -88,7 +88,7 @@ async def parse_imap_responses(
         if not line:
             continue
         if line.startswith(b"+ "):
-            yield (ResponseType.ContinueReq, line[2:])
+            yield (ResponseType.CONTINUE_REQ, line[2:])
         elif line.startswith(b"* "):
             match = literal_follows.match(line)
             while match:
@@ -100,13 +100,13 @@ async def parse_imap_responses(
                 except IncompleteReadError as err:
                     raise IncompleteResponse(line) from err
                 match = literal_follows.match(line)
-            yield (ResponseType.Untagged, line[2:])
+            yield (ResponseType.UNTAGGED, line[2:])
         else:
             while not _parses_as_tagged_response(line):
                 if reader.at_eof():
                     raise IncompleteResponse(line)
                 line += await reader.readline()
-            yield (ResponseType.Tagged, line)
+            yield (ResponseType.TAGGED, line)
 
     logger.debug("IMAP response stream ended.")
 
@@ -231,9 +231,9 @@ class ImapClient:
 
             self._last_response = time.time()
 
-            if response[0] == ResponseType.ContinueReq:
+            if response[0] == ResponseType.CONTINUE_REQ:
                 self._server_ready.set()
-            elif response[0] == ResponseType.Untagged:
+            elif response[0] == ResponseType.UNTAGGED:
                 if response[1].upper().startswith(b"OK "):
                     self._server_ready.set()
                 elif response[1].startswith(b"CAPABILITY "):
@@ -256,7 +256,7 @@ class ImapClient:
                         )
                     except ParseException:
                         logger.debug("Ignored untagged IMAP response: %s", response[1])
-            elif response[0] == ResponseType.Tagged:
+            elif response[0] == ResponseType.TAGGED:
                 tag_name, state, text = response[1].split(b" ", maxsplit=2)
                 self._tag_completions[tag_name].set_response(state, text)
 
