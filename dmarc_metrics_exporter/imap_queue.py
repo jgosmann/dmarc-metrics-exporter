@@ -88,7 +88,8 @@ class ImapQueue:
             except (asyncio.TimeoutError, Exception):  # pylint: disable=broad-except
                 logger.exception("Error during IMAP queue polling.")
             logger.debug(
-                "Going to sleep for %s until next poll.", self.poll_interval_seconds
+                "Going to sleep for %s seconds until next poll.",
+                self.poll_interval_seconds,
             )
             with contextlib.suppress(asyncio.TimeoutError):
                 await asyncio.wait_for(self._stop.wait(), self.poll_interval_seconds)
