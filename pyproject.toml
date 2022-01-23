@@ -27,6 +27,7 @@ pyparsing = "^3.0.6"
 python = "^3.7,<3.10"
 uvicorn = {extras = ["standard"], version = "^0.15.0"}
 xsdata = "^21.9"
+typing-extensions = "^4.0.1"
 
 [tool.poetry.dev-dependencies]
 aiohttp = "^3.7.3"

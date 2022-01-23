@@ -23,13 +23,13 @@ from typing import (
     Coroutine,
     Dict,
     FrozenSet,
-    Literal,
     Optional,
     Tuple,
     Union,
 )
 
 from pyparsing import ParseException
+from typing_extensions import Literal
 
 from .imap_parser import fetch_response_line, response_tagged
 
