@@ -132,6 +132,13 @@ To use a different configuration file:
 
     sudo -u dmarc-metrics python3 -m dmarc_metrics_exporter --configuration <path>
 
+You can enable debug logging with the `--debug`
+if you do not want to provide your own logging configuration:
+
+.. code-block:: bash
+
+    sudo -u dmarc-metrics python3 -m dmarc_metrics_exporter --debug
+
 
 systemd
 ^^^^^^^
