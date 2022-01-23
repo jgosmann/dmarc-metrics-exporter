@@ -42,7 +42,7 @@ def main(argv: Sequence[str]):
             "logging",
             dict(
                 version=1,
-                loggers={"uvicorn": {"level": "INFO"}},
+                disable_existing_loggers=False,
             ),
         )
     )
