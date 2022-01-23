@@ -305,6 +305,7 @@ class ImapClient:
         async def login_writer(cmd_writer: _ImapCommandWriter):
             await cmd_writer.write_raw(b"LOGIN ")
             await cmd_writer.write_string_literal(username)
+            await cmd_writer.write_raw(b" ")
             await cmd_writer.write_string_literal(password)
             await cmd_writer.write_raw(b"\r\n")
 
