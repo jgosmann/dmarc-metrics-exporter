@@ -24,6 +24,16 @@ Fixed
   (`#17 <https://github.com/jgosmann/dmarc-metrics-exporter/issues/17>`_)
 
 
+[0.4.3] - 2022-01-25
+--------------------
+
+Fixed
+^^^^^
+
+* Improve compatibility with different IMAP servers.
+  (`#17 <https://github.com/jgosmann/dmarc-metrics-exporter/issues/17>`_)
+
+
 [0.4.2] - 2022-01-01
 --------------------
 
