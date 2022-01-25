@@ -127,7 +127,7 @@ class ImapClient:
                     uid = int(match.group(1))
                     mail = next(lines)
                     terminator = next(lines)
-                    if not terminator == b")":
+                    if not terminator.endswith(b")"):
                         raise ImapClientError(
                             f"Expected group termination with ')', but got '{terminator}'."
                         )
