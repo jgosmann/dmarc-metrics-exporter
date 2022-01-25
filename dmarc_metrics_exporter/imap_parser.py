@@ -85,7 +85,10 @@ flags = pair(CaselessKeyword("FLAGS"), parenthesized_list(flag))
 internaldate = pair(
     CaselessKeyword("INTERNALDATE"), dbl_quoted_string.set_parse_action(remove_quotes)
 )
-rfc822 = pair(CaselessKeyword("RFC822"), nstring)
+rfc822 = pair(
+    CaselessKeyword("RFC822"),
+    nstring.copy().set_parse_action(lambda msg: msg.value.encode("latin1")),
+)
 rfc822_header = pair(CaselessKeyword("RFC822.HEADER"), nstring)
 rfc822_text = pair(CaselessKeyword("RFC822.TEXT"), nstring)
 rfc822_size = pair(CaselessKeyword("RFC822.SIZE"), common.integer)

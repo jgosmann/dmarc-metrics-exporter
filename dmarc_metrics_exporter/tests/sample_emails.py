@@ -7,11 +7,13 @@ from zipfile import ZipFile
 from dmarc_metrics_exporter.model.tests.sample_data import SAMPLE_XML
 
 
-def create_minimal_email(to="dmarc-feedback@mydomain.de"):
+def create_minimal_email(to="dmarc-feedback@mydomain.de", content=None):
     msg = EmailMessage()
     msg["Subject"] = "Minimal email"
     msg["From"] = "noreply-dmarc-support@google.com"
     msg["To"] = to
+    if content:
+        msg.set_content(content)
     return msg
 
 

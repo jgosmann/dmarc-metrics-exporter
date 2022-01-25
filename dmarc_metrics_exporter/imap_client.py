@@ -251,7 +251,7 @@ class ImapClient:
                     try:
                         await self.fetched_queue.put(
                             fetch_response_line.parse_string(
-                                response[1].decode("utf-8"), parse_all=True
+                                response[1].decode("latin1"), parse_all=True
                             )
                         )
                     except ParseException:

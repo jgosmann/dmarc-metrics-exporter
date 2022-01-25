@@ -50,7 +50,7 @@ RFC822_MESSAGE = f"{RFC822_HEADER}{RFC822_BODY}"
                 [
                     ["FLAGS", ["\\Seen"]],
                     ["UID", 6],
-                    ["RFC822", RFC822_MESSAGE],
+                    ["RFC822", RFC822_MESSAGE.encode("utf-8")],
                 ],
             ],
         ),
@@ -64,7 +64,7 @@ RFC822_MESSAGE = f"{RFC822_HEADER}{RFC822_BODY}"
                 "FETCH",
                 [
                     ["UID", 7],
-                    ["RFC822", RFC822_MESSAGE],
+                    ["RFC822", RFC822_MESSAGE.encode("utf-8")],
                     ["FLAGS", ["\\Seen"]],
                 ],
             ],
@@ -97,7 +97,7 @@ RFC822_MESSAGE = f"{RFC822_HEADER}{RFC822_BODY}"
             [5, "FETCH", [[["BODY", ""], RFC822_MESSAGE]]],
         ),
         (
-            f"6 FETCH (BODY[]<42> {{{len(RFC822_MESSAGE) - 42}}}\r\n{RFC822_MESSAGE[42:]}))\r\n",
+            f"6 FETCH (BODY[]<42> {{{len(RFC822_MESSAGE) - 42}}}\r\n{RFC822_MESSAGE[42:]})\r\n",
             [6, "FETCH", [[["BODY", "", 42], RFC822_MESSAGE[42:]]]],
         ),
         (
@@ -164,7 +164,7 @@ RFC822_MESSAGE = f"{RFC822_HEADER}{RFC822_BODY}"
         ),
         (
             f"12 FETCH (RFC822 {{{len(RFC822_MESSAGE)}}}\r\n{RFC822_MESSAGE})\r\n",
-            [12, "FETCH", [["RFC822", RFC822_MESSAGE]]],
+            [12, "FETCH", [["RFC822", RFC822_MESSAGE.encode("utf-8")]]],
         ),
         (
             f"13 FETCH (RFC822.HEADER {{{len(RFC822_HEADER)}}}\r\n{RFC822_HEADER})\r\n",
@@ -194,7 +194,10 @@ RFC822_MESSAGE = f"{RFC822_HEADER}{RFC822_BODY}"
     ],
 )
 def test_parses_fetch_response_line(given_string, expected):
-    assert fetch_response_line.parse_string(given_string).as_list() == expected
+    assert (
+        fetch_response_line.parse_string(given_string, parse_all=True).as_list()
+        == expected
+    )
 
 
 @pytest.mark.parametrize(

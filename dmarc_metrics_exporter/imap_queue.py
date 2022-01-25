@@ -109,9 +109,7 @@ class ImapQueue:
             if uid and mail_body:
                 msg = cast(
                     EmailMessage,
-                    BytesParser(policy=email.policy.default).parsebytes(
-                        mail_body.encode("utf-8")
-                    ),
+                    BytesParser(policy=email.policy.default).parsebytes(mail_body),
                 )
         return uid, msg
 

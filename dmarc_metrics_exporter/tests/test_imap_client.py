@@ -155,6 +155,24 @@ async def test_fetch(greenmail):
 
 
 @pytest.mark.asyncio
+async def test_fetch_non_ascii_chars(greenmail):
+    await send_email(
+        create_minimal_email(greenmail.imap.username, "üüüü"),
+        greenmail.smtp,
+    )
+    async with ImapClient(greenmail.imap) as client:
+        assert await client.select("INBOX") == 1
+        await client.fetch(b"1:1", b"(RFC822)")
+        fetched_email = await wait_for(client.fetched_queue.get(), 5)
+        assert fetched_email[:2] == [1, "FETCH"]
+        assert all(
+            value.endswith("üüüü\r\n".encode("utf-8"))
+            for key, value in fetched_email[2]
+            if key == "RFC822"
+        )
+
+
+@pytest.mark.asyncio
 async def test_create_delete(greenmail):
     async with ImapClient(greenmail.imap) as client:
         try:
