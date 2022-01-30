@@ -20,9 +20,6 @@ from dmarc_metrics_exporter.imap_client import (
     ConnectionConfig,
     ImapClient,
     ImapServerError,
-    IncompleteResponse,
-    ResponseType,
-    parse_imap_responses,
 )
 from dmarc_metrics_exporter.tests.conftest import send_email, try_until_success
 from dmarc_metrics_exporter.tests.sample_emails import create_minimal_email
@@ -56,84 +53,6 @@ class MockReader:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "input_buf, expected",
-    [
-        (
-            b"+ Ready for additional input\r\n",
-            [(ResponseType.CONTINUE_REQ, b"Ready for additional input\r\n")],
-        ),
-        (
-            b"* some untagged one line response\r\n",
-            [(ResponseType.UNTAGGED, b"some untagged one line response\r\n")],
-        ),
-        (
-            (b"* some untagged {23}\r\n+ multiline\r\n* response\r\n"),
-            [
-                (
-                    ResponseType.UNTAGGED,
-                    b"some untagged {23}\r\n+ multiline\r\n* response\r\n",
-                )
-            ],
-        ),
-        (
-            b"tag123 OK some text\r\n",
-            [(ResponseType.TAGGED, b"tag123 OK some text\r\n")],
-        ),
-        (
-            b"tag123 OK [FOO bar] some text\r\n",
-            [(ResponseType.TAGGED, b"tag123 OK [FOO bar] some text\r\n")],
-        ),
-        (
-            b"tag123 OK [UIDNEXT 456] some text\r\n",
-            [(ResponseType.TAGGED, b"tag123 OK [UIDNEXT 456] some text\r\n")],
-        ),
-        (
-            b"tag123 OK [BADCHARSET ({8}\r\nfoo\r\nbar)] some text\r\n",
-            [
-                (
-                    ResponseType.TAGGED,
-                    b"tag123 OK [BADCHARSET ({8}\r\nfoo\r\nbar)] some text\r\n",
-                )
-            ],
-        ),
-        (
-            (
-                b"* some untagged {23}\r\n+ multiline\r\n* response\r\ntag123 OK some text\r\n"
-            ),
-            [
-                (
-                    ResponseType.UNTAGGED,
-                    b"some untagged {23}\r\n+ multiline\r\n* response\r\n",
-                ),
-                (ResponseType.TAGGED, b"tag123 OK some text\r\n"),
-            ],
-        ),
-    ],
-)
-async def test_imap_reader(input_buf, expected):
-    respone_generator = parse_imap_responses(MockReader(input_buf))
-    actual = [response async for response in respone_generator]
-    assert actual == expected
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "input_buf",
-    [
-        b"tag123 INVALID foo\r\n",
-        b"tag123 OK [BADCHARSET ({8}\r\n",
-        b"+invalid OK foo\r\n",
-        b"* cutoff {4}\r\n",
-    ],
-)
-async def test_imap_reader_parse_error(input_buf):
-    respone_generator = parse_imap_responses(MockReader(input_buf))
-    with pytest.raises(IncompleteResponse):
-        await respone_generator.__anext__()
-
-
-@pytest.mark.asyncio
 async def test_basic_connection(greenmail):
     async with ImapClient(greenmail.imap) as client:
         assert client.has_capability("IMAP4rev1")
@@ -146,12 +65,12 @@ async def test_fetch(greenmail):
         assert await client.select("INBOX") == 1
         await client.fetch(b"1:1", b"(BODY[HEADER.FIELDS (SUBJECT)])")
         fetched_email = await wait_for(client.fetched_queue.get(), 5)
-        assert fetched_email[:2] == [1, "FETCH"]
+        assert fetched_email[:2] == (1, b"FETCH")
         assert [
-            value
-            for key, value in fetched_email[2]
-            if key[:2] == ["BODY", "HEADER.FIELDS"]
-        ] == ["Subject: Minimal email\r\n"]
+            item[2]
+            for item in fetched_email[2]
+            if item[:2] == (b"BODY", (b"HEADER.FIELDS", (b"SUBJECT",)))
+        ] == [b"Subject: Minimal email\r\n"]
 
 
 @pytest.mark.asyncio
@@ -164,11 +83,11 @@ async def test_fetch_non_ascii_chars(greenmail):
         assert await client.select("INBOX") == 1
         await client.fetch(b"1:1", b"(RFC822)")
         fetched_email = await wait_for(client.fetched_queue.get(), 5)
-        assert fetched_email[:2] == [1, "FETCH"]
+        assert fetched_email[:2] == (1, b"FETCH")
         assert all(
             value.endswith("üüüü\r\n".encode("utf-8"))
             for key, value in fetched_email[2]
-            if key == "RFC822"
+            if key == b"RFC822"
         )
 
 
@@ -212,8 +131,8 @@ async def test_uid_copy(greenmail):
             assert await client.select("INBOX") == 1
             await client.fetch(b"1:1", b"(UID)")
             fetched_email = await wait_for(client.fetched_queue.get(), 5)
-            assert fetched_email[:2] == [1, "FETCH"]
-            uid = [value for key, value in fetched_email[2] if key == "UID"][0]
+            assert fetched_email[:2] == (1, b"FETCH")
+            uid = [value for key, value in fetched_email[2] if key == b"UID"][0]
             await client.uid_copy(uid, "destination")
             assert await client.select("destination") == 1
         finally:
@@ -231,8 +150,8 @@ async def test_uid_move(greenmail):
             assert await client.select("INBOX") == 1
             await client.fetch(b"1:1", b"(UID)")
             fetched_email = await wait_for(client.fetched_queue.get(), 5)
-            assert fetched_email[:2] == [1, "FETCH"]
-            uid = [value for key, value in fetched_email[2] if key == "UID"][0]
+            assert fetched_email[:2] == (1, b"FETCH")
+            uid = [value for key, value in fetched_email[2] if key == b"UID"][0]
             await client.uid_move(uid, "destination")
             assert client.num_exists == 0
             assert await client.select("destination") == 1
@@ -250,8 +169,8 @@ async def test_uid_move_graceful(greenmail):
             assert await client.select("INBOX") == 1
             await client.fetch(b"1:1", b"(UID)")
             fetched_email = await wait_for(client.fetched_queue.get(), 5)
-            assert fetched_email[:2] == [1, "FETCH"]
-            uid = [value for key, value in fetched_email[2] if key == "UID"][0]
+            assert fetched_email[:2] == (1, b"FETCH")
+            uid = [value for key, value in fetched_email[2] if key == b"UID"][0]
             await client.uid_move_graceful(uid, "destination")
             assert client.num_exists == 0
             assert await client.select("destination") == 1
@@ -267,15 +186,15 @@ async def test_uid_store(greenmail):
         assert await client.select("INBOX") == 1
         await client.fetch(b"1:1", b"(UID)")
         fetched_email = await wait_for(client.fetched_queue.get(), 5)
-        assert fetched_email[:2] == [1, "FETCH"]
-        uid = [value for key, value in fetched_email[2] if key == "UID"][0]
+        assert fetched_email[:2] == (1, b"FETCH")
+        uid = [value for key, value in fetched_email[2] if key == b"UID"][0]
         await client.uid_store(uid, rb"+FLAGS (\Deleted)")
 
         fetched_email = await wait_for(client.fetched_queue.get(), 5)
-        assert fetched_email[:2] == [1, "FETCH"]
-        assert [value for key, value in fetched_email[2] if key == "FLAGS"][
-            0
-        ].as_list() == ["\\Deleted"]
+        assert fetched_email[:2] == (1, b"FETCH")
+        assert [value for key, value in fetched_email[2] if key == b"FLAGS"][0] == (
+            b"\\Deleted",
+        )
 
 
 @pytest.mark.asyncio
@@ -285,8 +204,8 @@ async def test_uid_expunge(greenmail):
         assert await client.select("INBOX") == 1
         await client.fetch(b"1:1", b"(UID)")
         fetched_email = await wait_for(client.fetched_queue.get(), 5)
-        assert fetched_email[:2] == [1, "FETCH"]
-        uid = [value for key, value in fetched_email[2] if key == "UID"][0]
+        assert fetched_email[:2] == (1, b"FETCH")
+        uid = [value for key, value in fetched_email[2] if key == b"UID"][0]
         await client.uid_store(uid, rb"+FLAGS (\Deleted)")
         await client.expunge()
         assert client.num_exists == 0

@@ -1,12 +1,10 @@
 import asyncio
 import itertools
 import logging
-import re
 import ssl
 import time
 from asyncio import (
     Event,
-    IncompleteReadError,
     Lock,
     Queue,
     StreamReader,
@@ -17,21 +15,12 @@ from asyncio import (
 )
 from dataclasses import dataclass
 from enum import Enum
-from typing import (
-    AsyncGenerator,
-    Callable,
-    Coroutine,
-    Dict,
-    FrozenSet,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import Callable, Coroutine, Dict, FrozenSet, Optional, Union
 
-from pyparsing import ParseException
+from bite import parse_incremental
 from typing_extensions import Literal
 
-from .imap_parser import fetch_response_line, response_tagged
+from .imap_parser import response as response_grammar
 
 logger = logging.getLogger(__name__)
 
@@ -68,47 +57,6 @@ class ResponseType(Enum):
     CONTINUE_REQ = "+"
     UNTAGGED = "*"
     TAGGED = "tagged"
-
-
-def _parses_as_tagged_response(line: bytes) -> bool:
-    try:
-        response_tagged.parse_string(line.decode("ascii"), parse_all=True)
-        return True
-    except ParseException:
-        return False
-
-
-async def parse_imap_responses(
-    reader: StreamReader,
-) -> AsyncGenerator[Tuple[ResponseType, bytes], None]:
-    literal_follows = re.compile(rb".*\{(\d+)\}\r\n$")
-
-    while not reader.at_eof():
-        line = await reader.readline()
-        if not line:
-            continue
-        if line.startswith(b"+ "):
-            yield (ResponseType.CONTINUE_REQ, line[2:])
-        elif line.startswith(b"* "):
-            match = literal_follows.match(line)
-            while match:
-                try:
-                    line += (
-                        await reader.readexactly(int(match.group(1)))
-                        + await reader.readline()
-                    )
-                except IncompleteReadError as err:
-                    raise IncompleteResponse(line) from err
-                match = literal_follows.match(line)
-            yield (ResponseType.UNTAGGED, line[2:])
-        else:
-            while not _parses_as_tagged_response(line):
-                if reader.at_eof():
-                    raise IncompleteResponse(line)
-                line += await reader.readline()
-            yield (ResponseType.TAGGED, line)
-
-    logger.debug("IMAP response stream ended.")
 
 
 class _ImapTag:
@@ -226,39 +174,42 @@ class ImapClient:
         self._server_ready.clear()
 
     async def _process_responses(self, reader: StreamReader):
-        async for response in parse_imap_responses(reader):
-            logger.debug("IMAP response: %s", response)
+        logger.debug("foo")
+        try:
+            async for parse_tree in parse_incremental(response_grammar, reader):
+                response = parse_tree.values
+                logger.debug("IMAP response: %s", response)
 
-            self._last_response = time.time()
+                self._last_response = time.time()
 
-            if response[0] == ResponseType.CONTINUE_REQ:
-                self._server_ready.set()
-            elif response[0] == ResponseType.UNTAGGED:
-                if response[1].upper().startswith(b"OK "):
+                if response[0] == b"+":
                     self._server_ready.set()
-                elif response[1].startswith(b"CAPABILITY "):
-                    logger.debug("IMAP server reports capabilities: %s", response[1])
-                    self._capabilities = frozenset(
-                        c.strip().upper()
-                        for c in response[1].decode("utf-8").split(" ")[1:]
-                    )
-                elif response[1].upper().endswith(b" EXISTS\r\n"):
-                    self.num_exists = int(response[1].split(b" ", maxsplit=1)[0])
-                elif response[1].upper().endswith(b" EXPUNGE\r\n"):
-                    if self.num_exists is not None:
-                        self.num_exists -= 1
-                else:
-                    try:
-                        await self.fetched_queue.put(
-                            fetch_response_line.parse_string(
-                                response[1].decode("latin1"), parse_all=True
-                            )
+                elif response[0] == b"*":
+                    if response[1] == b"OK":
+                        self._server_ready.set()
+                    elif response[1] == b"CAPABILITY":
+                        logger.debug(
+                            "IMAP server reports capabilities: %s", response[2]
                         )
-                    except ParseException:
+                        self._capabilities = frozenset(
+                            c.strip().upper()
+                            for c in response[2].decode("utf-8").split(" ")
+                        )
+                    elif len(response) >= 3 and response[2] == b"EXISTS":
+                        self.num_exists = response[1]
+                    elif len(response) >= 3 and response[2] == b"EXPUNGE":
+                        if self.num_exists is not None:
+                            self.num_exists -= 1
+                    elif len(response) >= 3 and response[2] == b"FETCH":
+                        await self.fetched_queue.put(response[1:])
+                    else:
                         logger.debug("Ignored untagged IMAP response: %s", response[1])
-            elif response[0] == ResponseType.TAGGED:
-                tag_name, state, text = response[1].split(b" ", maxsplit=2)
-                self._tag_completions[tag_name].set_response(state, text)
+                else:
+                    tag_name, state, text = response[0:3]
+                    self._tag_completions[tag_name].set_response(state, text)
+            logger.debug("End of response stream.")
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("Error while processing server responses.")
 
     async def _command(
         self, name: str, write_command: Callable[[_ImapCommandWriter], Coroutine]

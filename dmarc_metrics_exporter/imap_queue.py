@@ -58,11 +58,6 @@ class ImapQueue:
                             )
                         )
                         while not fetch_task.done() or not client.fetched_queue.empty():
-                            logger.debug(
-                                "x %s %s",
-                                fetch_task.done(),
-                                client.fetched_queue.empty(),
-                            )
                             uid, msg = self._extract_uid_and_msg(
                                 await client.fetched_queue.get()
                             )
@@ -99,12 +94,12 @@ class ImapQueue:
         cls, parsed_response: ParseResult
     ) -> Tuple[Optional[int], Optional[EmailMessage]]:
         uid, msg = None, None
-        if parsed_response[1] == "FETCH":
+        if parsed_response[1] == b"FETCH":
             for key, value in cast(Tuple[Any, Any], parsed_response[2]):
                 mail_body = None
-                if key == "UID":
+                if key == b"UID":
                     uid = cast(int, value)
-                elif key == "RFC822":
+                elif key == b"RFC822":
                     mail_body = value
             if uid and mail_body:
                 msg = cast(
