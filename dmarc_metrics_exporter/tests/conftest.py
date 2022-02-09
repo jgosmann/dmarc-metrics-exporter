@@ -8,7 +8,8 @@ from typing import Any, Awaitable, Callable, Union
 import pytest
 import requests
 
-from dmarc_metrics_exporter.imap_queue import ConnectionConfig, ImapClient
+from dmarc_metrics_exporter.imap_client import ImapClient
+from dmarc_metrics_exporter.imap_queue import ConnectionConfig
 
 
 @dataclass
@@ -46,7 +47,12 @@ def fixture_greenmail() -> Greenmail:
     greenmail = Greenmail(
         smtp=NetworkAddress("localhost", 3025),
         imap=ConnectionConfig(
-            host="localhost", port=3993, username="queue@localhost", password="password"
+            host="localhost",
+            port=3993,
+            username="queue@localhost",
+            password="password",
+            use_ssl=True,
+            verify_certificate=False,
         ),
         api=NetworkAddress("localhost", 8080),
     )
@@ -69,6 +75,10 @@ async def try_until_success(
                 return await asyncio.wait_for(result, max_fn_duration_seconds)
             else:
                 return result
+        except asyncio.TimeoutError as err:
+            raise TimeoutError(
+                f"Function execution duration exceeded {max_fn_duration_seconds} seconds."
+            ) from err
         except Exception as err:  # pylint: disable=broad-except
             last_err = err
             await asyncio.sleep(poll_interval_seconds)

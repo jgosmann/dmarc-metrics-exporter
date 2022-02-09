@@ -1,42 +1,61 @@
-import re
-
-from pyparsing import (
-    CaselessKeyword,
+from bite import (
+    And,
+    CaselessLiteral,
+    CharacterSet,
     Combine,
-    Group,
+    Counted,
+    FixedByteCount,
     Literal,
     Opt,
-    Regex,
-    common,
-    dbl_quoted_string,
-    remove_quotes,
+    Parser,
+    Suppress,
+    TransformValues,
 )
-from pyparsing.core import ParserElement
-from pyparsing.helpers import counted_array, nested_expr
+from bite.core import Forward
+from bite.transformers import Group
 
-nil = CaselessKeyword("NIL")
-atom_char = Regex(r'[^(){ %*"\\\]\x00-\x1f\x7f-\x9f]')
-resp_specials = Literal("]")
+nil = CaselessLiteral(b"NIL")
+atom_char = CharacterSet(
+    rb'(){ %*"\]' + bytes(range(0x1F + 1)) + bytes(range(0x7F, 0x9F + 1)), invert=True
+)
+atom = Combine(atom_char[1, ...])
+resp_specials = Literal(b"]")
 astring_char = atom_char | resp_specials
 
-literal_string = Combine(
-    counted_array(
-        Regex(".", re.DOTALL).leave_whitespace(),
-        Literal("{").suppress() + common.integer + Literal("}\r\n").suppress(),
-    )
-)
-string = dbl_quoted_string.set_parse_action(remove_quotes) | literal_string
+sp = Suppress(CharacterSet(b" \t")[1, ...])
+crlf = Suppress(Literal(b"\r\n"))
 
-astring = astring_char[1, ...] | string
+integer = TransformValues(
+    Combine(CharacterSet(b"0123456789")[1, ...]),
+    lambda values: tuple(int(v) for v in values),
+)
+literal_string = Counted(
+    Suppress(Literal(b"{")) + integer + Suppress(Literal(b"}") + crlf),
+    FixedByteCount,
+)
+dbl_quoted_string = (
+    Suppress(Literal(b'"'))
+    + Combine(CharacterSet(b'"', invert=True)[0, ...])
+    + Suppress(Literal(b'"'))
+)
+string = dbl_quoted_string | literal_string
+
+astring = Combine(astring_char[1, ...]) | string
 nstring = string | nil
 
 
-def parenthesized_list(items_expr: ParserElement) -> ParserElement:
-    return Literal("(").suppress() + Group(items_expr[...]) + Literal(")").suppress()
+def parenthesized_list(items_expr: Parser) -> Parser:
+    return Group(
+        Suppress(Literal(b"("))
+        + Opt(sp)
+        + Opt(items_expr + (sp + items_expr)[0, ...])
+        + Opt(sp)
+        + Suppress(Literal(b")"))
+    )
 
 
-def pair(keyword_expr: ParserElement, expr: ParserElement) -> ParserElement:
-    return Group(keyword_expr.set_results_name("key") + expr.set_results_name("value"))
+def pair(keyword_expr: Parser, expr: Parser) -> Parser:
+    return Group(And([keyword_expr, sp, expr]))
 
 
 address = parenthesized_list(nstring)
@@ -45,49 +64,56 @@ header_field_name = astring
 header_list = parenthesized_list(header_field_name)
 
 section_msgtext = (
-    CaselessKeyword("HEADER")
-    | (CaselessKeyword("HEADER.FIELDS") + Opt(CaselessKeyword(".NOT")) + header_list)
-    | CaselessKeyword("TEXT")
+    (
+        CaselessLiteral(b"HEADER.FIELDS")
+        + Opt(CaselessLiteral(b".NOT"))
+        + Opt(sp)
+        + header_list
+    )
+    | CaselessLiteral(b"HEADER")
+    | CaselessLiteral(b"TEXT")
 )
-section_text = section_msgtext | CaselessKeyword("MIME")
-section_part = common.integer + (Literal(".").suppress() + common.integer)[...]
+section_text = section_msgtext | CaselessLiteral(b"MIME")
+section_part = integer + (Suppress(Literal(b".")) + integer)[0, ...]
 section_spec = section_msgtext | (
-    Group(section_part + Opt(Literal(".").suppress() + section_text))
+    section_part + Opt(Suppress(Literal(b".")) + section_text)
 )
-section = (
-    Literal("[").suppress()
-    + Opt(section_spec, default="").set_results_name("section")
-    + Literal("]").suppress()
+section = Suppress(Literal(b"[")) + Group(Opt(section_spec)) + Suppress(Literal(b"]"))
+
+nested_lists = Forward()
+nested_lists.assign(
+    parenthesized_list(
+        nstring | nested_lists | Combine(CharacterSet(b" )", invert=True)[1, ...])
+    )
 )
 
-body_structure = pair(
-    CaselessKeyword("BODY") | CaselessKeyword("BODYSTRUCTURE"),
-    nested_expr(ignore_expr=string),
+
+body_structure = Group(
+    (CaselessLiteral(b"BODYSTRUCTURE") | CaselessLiteral(b"BODY"))
+    + sp
+    + Group(Suppress(nested_lists))
 )
 body_section = pair(
-    Group(
-        CaselessKeyword("BODY")
-        + section
-        + Opt(
-            Literal("<").suppress() + common.integer + Literal(">").suppress()
-        ).set_results_name("offset")
-    ),
+    CaselessLiteral(b"BODY")
+    + section
+    + Opt(Suppress(Literal(b"<")) + integer + Suppress(Literal(b">"))),
     nstring,
 )
 envelope = pair(
-    CaselessKeyword("ENVELOPE"),
+    CaselessLiteral(b"ENVELOPE"),
     parenthesized_list(parenthesized_list(address) | nstring),
 )
-flag = Combine(Literal("\\") + atom_char[1, ...])
-flags = pair(CaselessKeyword("FLAGS"), parenthesized_list(flag))
-internaldate = pair(
-    CaselessKeyword("INTERNALDATE"), dbl_quoted_string.set_parse_action(remove_quotes)
+flag = Combine(Literal(b"\\") + atom)
+flags = pair(CaselessLiteral(b"FLAGS"), parenthesized_list(flag))
+internaldate = pair(CaselessLiteral(b"INTERNALDATE"), dbl_quoted_string)
+rfc822 = pair(
+    CaselessLiteral(b"RFC822"),
+    nstring,
 )
-rfc822 = pair(CaselessKeyword("RFC822"), nstring)
-rfc822_header = pair(CaselessKeyword("RFC822.HEADER"), nstring)
-rfc822_text = pair(CaselessKeyword("RFC822.TEXT"), nstring)
-rfc822_size = pair(CaselessKeyword("RFC822.SIZE"), common.integer)
-uid = pair(CaselessKeyword("UID"), common.integer)
+rfc822_header = pair(CaselessLiteral(b"RFC822.HEADER"), nstring)
+rfc822_text = pair(CaselessLiteral(b"RFC822.TEXT"), nstring)
+rfc822_size = pair(CaselessLiteral(b"RFC822.SIZE"), integer)
+uid = pair(CaselessLiteral(b"UID"), integer)
 fetch_response_pair = (
     body_section
     | body_structure
@@ -102,7 +128,72 @@ fetch_response_pair = (
 )
 
 fetch_response_line = (
-    common.integer + CaselessKeyword("FETCH") + parenthesized_list(fetch_response_pair)
+    integer
+    + sp
+    + CaselessLiteral(b"FETCH")
+    + Opt(sp)
+    + parenthesized_list(fetch_response_pair)
 )
 
-fetch_response = Group(fetch_response_line[...])
+text = Combine(CharacterSet(b"\r\n", invert=True)[0, ...])
+flag_perm = flag | Literal(rb"\*")
+auth_type = atom
+capability = (CaselessLiteral(b"AUTH=") + auth_type) | atom
+capability_data = (
+    CaselessLiteral(b"CAPABILITY")
+    + capability[0, ...]
+    + CaselessLiteral(b"IMAP4rev1")
+    + capability[0, ...]
+)
+response_text_code = (
+    CaselessLiteral(b"ALERT")
+    | Group(CaselessLiteral(b"BADCHARSET") + Opt(sp) + Opt(parenthesized_list(astring)))
+    | capability_data
+    | CaselessLiteral(b"PARSE")
+    | Group(
+        CaselessLiteral(b"PERMANENTFLAGS") + Opt(sp) + parenthesized_list(flag_perm)
+    )
+    | CaselessLiteral(b"READ-ONLY")
+    | CaselessLiteral(b"READ-WRITE")
+    | CaselessLiteral(b"TRYCREATE")
+    | Group(CaselessLiteral(b"UIDNEXT") + sp + integer)
+    | Group(CaselessLiteral(b"UIDVALIDITY") + sp + integer)
+    | Group(CaselessLiteral(b"UNSEEN") + sp + integer)
+    | Group(atom + Opt(sp + Combine(CharacterSet(b"\r\r]", invert=True)[1, ...])))
+)
+resp_text = Opt(
+    Suppress(Literal(b"["))
+    + response_text_code
+    + Suppress(Literal(b"]"))
+    + Suppress(Opt(sp))
+) + (~Literal(b"[") + text)
+resp_cond_state = (
+    CaselessLiteral(b"OK") | CaselessLiteral(b"NO") | CaselessLiteral(b"BAD")
+)
+tag = ~Literal(b"+") + Combine(astring_char[1, ...])
+response_tagged = tag + sp + resp_cond_state + sp + resp_text
+
+server_greeting = Literal(b"OK") + sp + text
+server_goodbye = Literal(b"BYE") + sp + text
+
+capability = CaselessLiteral(b"CAPABILITY") + sp + text
+response_untagged = (
+    Literal(b"*")
+    + sp
+    + (
+        server_goodbye
+        | capability
+        | (integer + sp + Literal(b"EXISTS"))
+        | (integer + sp + Literal(b"EXPUNGE"))
+        | fetch_response_line
+        | server_greeting
+        | (
+            (
+                Combine(CharacterSet(b"{\r\n", invert=True)[1, ...])
+                + Opt(literal_string)
+            )[0, ...]
+        )
+    )
+)
+response_continue = Literal(b"+") + sp + text
+response = (response_continue | response_untagged | response_tagged) + crlf

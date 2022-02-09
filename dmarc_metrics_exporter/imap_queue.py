@@ -1,26 +1,17 @@
 import asyncio
+import contextlib
 import email.policy
 import logging
-import re
 from asyncio.tasks import Task
 from dataclasses import astuple, dataclass
 from email.message import EmailMessage
 from email.parser import BytesParser
-from typing import Any, AsyncGenerator, Awaitable, Callable, Optional, Tuple, cast
+from typing import Any, Awaitable, Callable, Optional, Tuple, cast
+from urllib.parse import ParseResult
 
-from aioimaplib import aioimaplib
-
-from .imap_parser import fetch_response
+from dmarc_metrics_exporter.imap_client import ConnectionConfig, ImapClient
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class ConnectionConfig:
-    username: str
-    password: str
-    host: str = "localhost"
-    port: int = 993
 
 
 @dataclass
@@ -43,142 +34,80 @@ class ImapQueue:
         self.folders = folders
         self.poll_interval_seconds = poll_interval_seconds
         self.timeout_seconds = timeout_seconds
-        self._stop = False
-        self._consumer: Optional[Task[Any]] = None
+        self._client = ImapClient(connection, timeout_seconds)
+        self._stop = asyncio.Event()
+        self._poll_task: Optional[Task[Any]] = None
 
     def consume(self, handler: Callable[[Any], Awaitable[None]]):
-        self._consumer = asyncio.create_task(self._consume(handler))
+        self._poll_task = asyncio.create_task(self._poll_imap(handler))
 
-    async def _consume(self, handler: Callable[[Any], Awaitable[None]]):
-        while not self._stop:
+    async def _poll_imap(self, handler: Callable[[Any], Awaitable[None]]):
+        while not self._stop.is_set():
+            logger.debug("Polling IMAP ...")
             try:
                 async with ImapClient(self.connection, self.timeout_seconds) as client:
                     for folder in astuple(self.folders):
                         await client.create_if_not_exists(folder)
 
                     msg_count = await client.select(self.folders.inbox)
+                    logger.debug("%s messages to fetch.", msg_count)
                     if msg_count > 0:
-                        async for uid, msg in client.fetch(1, msg_count):
-                            try:
-                                await handler(msg)
-                            except Exception:  # pylint: disable=broad-except
-                                logger.exception(
-                                    "Handler for message in IMAP queue failed."
-                                )
-                                await client.uid_move(uid, self.folders.error)
-                            else:
-                                await client.uid_move(uid, self.folders.done)
+                        fetch_task = asyncio.create_task(
+                            client.fetch(
+                                b"1:" + str(msg_count).encode("ascii"), b"(UID RFC822)"
+                            )
+                        )
+                        while not fetch_task.done() or not client.fetched_queue.empty():
+                            uid, msg = self._extract_uid_and_msg(
+                                await client.fetched_queue.get()
+                            )
+                            if uid is not None and msg is not None:
+                                try:
+                                    logger.debug("Processing UID %s", uid)
+                                    await handler(msg)
+                                except Exception:  # pylint: disable=broad-except
+                                    logger.exception(
+                                        "Handler for message in IMAP queue failed."
+                                    )
+                                    await client.uid_move_graceful(
+                                        uid, self.folders.error
+                                    )
+                                else:
+                                    logger.debug("foo")
+                                    await client.uid_move_graceful(
+                                        uid, self.folders.done
+                                    )
+                                    logger.debug("bar")
+                        logger.debug("Processed all messages.")
+                        await fetch_task
             except (asyncio.TimeoutError, Exception):  # pylint: disable=broad-except
                 logger.exception("Error during IMAP queue polling.")
-            await asyncio.sleep(self.poll_interval_seconds)
+            logger.debug(
+                "Going to sleep for %s seconds until next poll.",
+                self.poll_interval_seconds,
+            )
+            with contextlib.suppress(asyncio.TimeoutError):
+                await asyncio.wait_for(self._stop.wait(), self.poll_interval_seconds)
+
+    @classmethod
+    def _extract_uid_and_msg(
+        cls, parsed_response: ParseResult
+    ) -> Tuple[Optional[int], Optional[EmailMessage]]:
+        uid, msg = None, None
+        if parsed_response[1] == b"FETCH":
+            for key, value in cast(Tuple[Any, Any], parsed_response[2]):
+                mail_body = None
+                if key == b"UID":
+                    uid = cast(int, value)
+                elif key == b"RFC822":
+                    mail_body = value
+            if uid and mail_body:
+                msg = cast(
+                    EmailMessage,
+                    BytesParser(policy=email.policy.default).parsebytes(mail_body),
+                )
+        return uid, msg
 
     async def stop_consumer(self):
-        self._stop = True
-        await self._consumer
-
-
-class ImapClient:
-    def __init__(self, connection: ConnectionConfig, timeout_seconds: int = 10):
-        self.connection = connection
-        self.timeout_seconds = timeout_seconds
-        self._client = aioimaplib.IMAP4_SSL(
-            host=self.connection.host,
-            port=self.connection.port,
-            timeout=timeout_seconds,
-        )
-
-    async def __aenter__(self):
-        await self._client.wait_hello_from_server()
-        await self._check(
-            "LOGIN",
-            self._client.login(self.connection.username, self.connection.password),
-        )
-        return self
-
-    async def __aexit__(self, exc_type, exc, traceback):
-        await self._check("LOGOUT", self._client.logout())
-
-    async def _check(self, command: str, awaitable: Awaitable[Tuple[str, Any]]) -> Any:
-        res, data = await asyncio.wait_for(awaitable, self.timeout_seconds)
-        if res not in ("OK", b"OK"):
-            raise ImapServerError(command, res, data)
-        return data
-
-    async def select(self, folder: str = "INBOX") -> int:
-        """Selects a mailbox and returns the existing mail count."""
-        data = await self._check("SELECT", self._client.select(folder))
-        exists_regex = re.compile(rb"^(\d+) EXISTS$")
-        matches = (exists_regex.match(line) for line in data)
-        msg_count = next(int(m.group(1)) for m in matches if m)
-        return msg_count
-
-    async def fetch(
-        self, first_msg: int, last_msg: int
-    ) -> AsyncGenerator[Tuple[int, EmailMessage], None]:
-        response_lines = await self._check(
-            "FETCH", self._client.fetch(f"{first_msg}:{last_msg}", "(UID RFC822)")
-        )
-        response_string = b"\r\n".join(response_lines).decode("ascii")
-        for parsed_line in fetch_response.parse_string(response_string):
-            try:
-                uid = next(value for key, value in parsed_line[2] if key == "UID")
-                mail = next(value for key, value in parsed_line[2] if key == "RFC822")
-                yield uid, cast(
-                    EmailMessage,
-                    BytesParser(policy=email.policy.default).parsebytes(
-                        mail.encode("ascii")
-                    ),
-                )
-            except StopIteration:
-                logger.warning(
-                    "FETCH response was missing requested data (UID, RFC822)."
-                )
-
-    async def create_if_not_exists(self, mailbox_name: str):
-        if (await self._client.select(mailbox_name)).result != "OK":
-            await self._check("CREATE", self._client.create(mailbox_name))
-
-    async def uid_move(self, uid: int, destination: str):
-        if self._client.has_capability("MOVE"):
-            await self._check(
-                "UID MOVE",
-                self._client.uid("move", str(uid), destination),
-            )
-        else:
-            await self._check(
-                "UID COPY",
-                self._client.uid("copy", str(uid), destination),
-            )
-            await self._check(
-                "UID STORE",
-                self._client.uid(
-                    "store",
-                    str(uid),
-                    r"+FLAGS.SILENT (\Deleted)",
-                ),
-            )
-            await self._check("UID EXPUNGE", self._client.uid("expunge", str(uid)))
-
-
-class ImapError(Exception):
-    pass
-
-
-class ImapClientError(ImapError):
-    """Error class for errors encountered on the client side."""
-
-
-class ImapServerError(ImapError):
-    """Error class for errors reported from the server."""
-
-    def __init__(self, command, result, server_response):
-        self.command = command
-        self.result = result
-        self.server_response = server_response
-        super().__init__(command, result, server_response)
-
-    def __str__(self):
-        return (
-            f"IMAP error: Command {self.command} returned {self.result} "
-            f"with response data: {self.server_response}"
-        )
+        self._stop.set()
+        await self._poll_task

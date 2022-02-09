@@ -15,6 +15,7 @@ Added
 * Possibility to configure log output with ``logging`` key in the configuration
   file. `See logging.config documentation for details.
   <https://docs.python.org/3/library/logging.config.html#configuration-dictionary-schema>`_
+* `--debug` flag to quickly enable debug log output.
 
 
 Fixed

@@ -101,6 +101,8 @@ The following configuration options are available:
   * ``port`` (number, default ``993``): Port of the IMAP server to connect to.
   * ``username`` (string, required): Login username for the IMAP connection.
   * ``password``: (string, required): Login password for the IMAP connection.
+  * ``use_ssl``: (boolean, default ``true``): Whether to use SSL encryption for the connection. Disabling this will transmit the password in clear text! Currently, there is no support for STARTTLS.
+  * ``verify_certificate``: (boolean, default ``true``): Whether to verify the server's SSL certificate. You might have to set this to ``false`` if you are using a self-signed certificate. If this is disabled, someone else could impersonate the server and obtain the login data.
 
 * ``folders`` (object):
 
@@ -112,7 +114,7 @@ The following configuration options are available:
   Directory to persist data in that has to persisted between restarts.
 * ``poll_interval_seconds`` (number, default ``60``): How often to poll the IMAP server in seconds.
 * ``deduplication_max_seconds`` (number, default ``604800`` which is 7 days): How long individual report IDs will be remembered to avoid counting double delivered reports twice.
-* ``logging`` (object, default ``{ "version": 1, "loggers": { "uvicorn": { "level": "INFO" } } }``): Logging configuration. `See logging.config documentation. <https://docs.python.org/3/library/logging.config.html#configuration-dictionary-schema>`_
+* ``logging`` (object, default ``{ "version": 1, "disable_existing_loggers": false }``): Logging configuration. `See logging.config documentation. <https://docs.python.org/3/library/logging.config.html#configuration-dictionary-schema>`_
 
 Usage
 -----
@@ -129,6 +131,13 @@ To use a different configuration file:
 .. code-block:: bash
 
     sudo -u dmarc-metrics python3 -m dmarc_metrics_exporter --configuration <path>
+
+You can enable debug logging with the `--debug`
+if you do not want to provide your own logging configuration:
+
+.. code-block:: bash
+
+    sudo -u dmarc-metrics python3 -m dmarc_metrics_exporter --debug
 
 
 systemd

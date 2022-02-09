@@ -31,18 +31,24 @@ def main(argv: Sequence[str]):
         default="/etc/dmarc-metrics-exporter.json",
         help="Configuration file",
     )
+    parser.add_argument(
+        "--debug",
+        default=False,
+        action="store_true",
+        help="Enable debug logging",
+    )
     args = parser.parse_args(argv)
 
     configuration = json.load(args.configuration)
     args.configuration.close()
 
-    logging.basicConfig()
+    logging.basicConfig(level=logging.DEBUG if args.debug else logging.INFO)
     logging.config.dictConfig(
         configuration.get(
             "logging",
             dict(
                 version=1,
-                loggers={"uvicorn": {"level": "INFO"}},
+                disable_existing_loggers=False,
             ),
         )
     )
