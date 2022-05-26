@@ -25,7 +25,7 @@ version = "0.5.1"
 bite-parser = "^0.1.1"
 dataclasses-serialization = "^1.3.1"
 prometheus_client = "^0.11.0"
-python = "^3.7,<3.10"
+python = "^3.7,<3.11"
 typing-extensions = "^4.0.1"
 uvicorn = {extras = ["standard"], version = "^0.15.0"}
 xsdata = "^21.9"
