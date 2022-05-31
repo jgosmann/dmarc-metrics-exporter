@@ -21,6 +21,10 @@ readme = "README.rst"
 repository = "https://github.com/jgosmann/dmarc-metrics-exporter/"
 version = "0.5.2-dev"
 
+
+[tool.poetry.scripts]
+dmarc-metrics-exporter = "dmarc_metrics_exporter.__main__:run"
+
 [tool.poetry.dependencies]
 bite-parser = "^0.1.2"
 dataclasses-serialization = "^1.3.1"
