@@ -19,10 +19,10 @@ license = "MIT"
 name = "dmarc-metrics-exporter"
 readme = "README.rst"
 repository = "https://github.com/jgosmann/dmarc-metrics-exporter/"
-version = "0.5.1"
+version = "0.5.2-dev"
 
 [tool.poetry.dependencies]
-bite-parser = "^0.1.1"
+bite-parser = "^0.1.2"
 dataclasses-serialization = "^1.3.1"
 prometheus_client = "^0.11.0"
 python = "^3.7,<3.10"

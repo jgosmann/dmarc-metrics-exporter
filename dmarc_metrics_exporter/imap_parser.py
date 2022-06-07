@@ -5,13 +5,13 @@ from bite import (
     Combine,
     Counted,
     FixedByteCount,
+    Forward,
     Literal,
     Opt,
     Parser,
     Suppress,
     TransformValues,
 )
-from bite.core import Forward
 from bite.transformers import Group
 
 nil = CaselessLiteral(b"NIL")
