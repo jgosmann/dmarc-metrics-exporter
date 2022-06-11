@@ -19,7 +19,7 @@ license = "MIT"
 name = "dmarc-metrics-exporter"
 readme = "README.rst"
 repository = "https://github.com/jgosmann/dmarc-metrics-exporter/"
-version = "0.5.2-dev"
+version = "0.6.0"
 
 
 [tool.poetry.scripts]
