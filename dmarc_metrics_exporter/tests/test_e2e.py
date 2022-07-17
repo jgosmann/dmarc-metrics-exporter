@@ -36,9 +36,9 @@ def dmarc_metrics_exporter(config_path):
 
 
 @pytest.mark.asyncio
-async def test_successful_processing_of_existing_queue_message(greenmail, tmp_path):
+async def test_successful_processing_of_incoming_queue_message(greenmail, tmp_path):
     # Given
-    msg = create_email_with_zip_attachment(greenmail.imap.username)
+    msg = create_email_with_zip_attachment(greenmail.imap.username, report_id="1")
     await try_until_success(lambda: send_email(msg, greenmail.smtp))
 
     config = {

@@ -1,13 +1,15 @@
 import dmarc_metrics_exporter.model as m
 
-SAMPLE_XML = """
+
+def create_sample_xml(*, report_id: str = "12598866915817748661") -> str:
+    return f"""
 <?xml version="1.0" encoding="UTF-8" ?>
 <feedback>
   <report_metadata>
     <org_name>google.com</org_name>
     <email>noreply-dmarc-support@google.com</email>
     <extra_contact_info>https://support.google.com/a/answer/2466580</extra_contact_info>
-    <report_id>12598866915817748661</report_id>
+    <report_id>{report_id}</report_id>
     <date_range>
       <begin>1607299200</begin>
       <end>1607385599</end>
@@ -48,6 +50,7 @@ SAMPLE_XML = """
   </record>
 </feedback>
 """.strip()
+
 
 SAMPLE_DATACLASS = m.Feedback(
     report_metadata=m.ReportMetadataType(
