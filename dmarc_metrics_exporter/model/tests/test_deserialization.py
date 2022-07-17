@@ -3,9 +3,9 @@ from xsdata.formats.dataclass.parsers import XmlParser
 
 from dmarc_metrics_exporter.model.dmarc_aggregate_report import Feedback
 
-from .sample_data import SAMPLE_DATACLASS, SAMPLE_XML
+from .sample_data import SAMPLE_DATACLASS, create_sample_xml
 
 
 def test_deserialization():
     parser = XmlParser(context=XmlContext())
-    assert parser.from_string(SAMPLE_XML, Feedback) == SAMPLE_DATACLASS
+    assert parser.from_string(create_sample_xml(), Feedback) == SAMPLE_DATACLASS
