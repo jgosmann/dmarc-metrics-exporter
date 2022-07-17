@@ -59,23 +59,34 @@ async def test_successful_processing_of_incoming_queue_message(greenmail, tmp_pa
         "dkim_domain": "mydomain.de",
         "spf_domain": "my-spf-domain.de",
     }
-    expected_metrics = {
-        "dmarc_total": 1,
-        "dmarc_compliant_total": 1,
+    expected_metrics = lambda processed_email_count: {
+        "dmarc_total": processed_email_count,
+        "dmarc_compliant_total": processed_email_count,
         "dmarc_quarantine_total": 0,
         "dmarc_reject_total": 0,
-        "dmarc_dkim_aligned_total": 1,
-        "dmarc_dkim_pass_total": 1,
+        "dmarc_dkim_aligned_total": processed_email_count,
+        "dmarc_dkim_pass_total": processed_email_count,
         "dmarc_spf_aligned_total": 0,
-        "dmarc_spf_pass_total": 1,
+        "dmarc_spf_pass_total": processed_email_count,
     }
 
     with dmarc_metrics_exporter(config_path):
+        url = f"http://{config['listen_addr']}:{config['port']}/metrics"
         await try_until_success(
             lambda: assert_exported_metrics(
-                f"http://{config['listen_addr']}:{config['port']}/metrics",
+                url,
                 expected_meta,
-                expected_metrics,
+                expected_metrics(1),
+            ),
+            timeout_seconds=20,
+        )
+        msg = create_email_with_zip_attachment(greenmail.imap.username, report_id="2")
+        await send_email(msg, greenmail.smtp)
+        await try_until_success(
+            lambda: assert_exported_metrics(
+                url,
+                expected_meta,
+                expected_metrics(2),
             ),
             timeout_seconds=20,
         )

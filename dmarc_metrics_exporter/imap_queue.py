@@ -35,15 +35,16 @@ class ImapQueue:
         self.poll_interval_seconds = poll_interval_seconds
         self.timeout_seconds = timeout_seconds
         self._client = ImapClient(connection, timeout_seconds)
-        self._stop = asyncio.Event()
+        self._stop: Optional[asyncio.Event] = None
         self._poll_task: Optional[Task[Any]] = None
 
     def consume(self, handler: Callable[[Any], Awaitable[None]]):
+        self._stop = asyncio.Event()
         self._poll_task = asyncio.create_task(self._poll_imap(handler))
 
     async def _poll_imap(self, handler: Callable[[Any], Awaitable[None]]):
         try:
-            while not self._stop.is_set():
+            while self._stop is not None and not self._stop.is_set():
                 logger.debug("Polling IMAP ...")
                 try:
                     await self._process_new_messages(handler)
@@ -115,5 +116,7 @@ class ImapQueue:
         return uid, msg
 
     async def stop_consumer(self):
-        self._stop.set()
-        await self._poll_task
+        if self._stop is not None:
+            self._stop.set()
+            await self._poll_task
+            self._stop = None
