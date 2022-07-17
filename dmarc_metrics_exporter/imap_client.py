@@ -174,7 +174,6 @@ class ImapClient:
         self._server_ready.clear()
 
     async def _process_responses(self, reader: StreamReader):
-        logger.debug("foo")
         try:
             async for parse_tree in parse_incremental(response_grammar, reader):
                 response = parse_tree.values
