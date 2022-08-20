@@ -93,10 +93,9 @@ body_structure = Group(
     + sp
     + Group(Suppress(nested_lists))
 )
+length = Suppress(Literal(b"<")) + integer + Suppress(Literal(b">"))
 body_section = pair(
-    CaselessLiteral(b"BODY")
-    + section
-    + Opt(Suppress(Literal(b"<")) + integer + Suppress(Literal(b">"))),
+    CaselessLiteral(b"BODY") + section + Opt(length),
     nstring,
 )
 envelope = pair(
@@ -114,6 +113,14 @@ rfc822_header = pair(CaselessLiteral(b"RFC822.HEADER"), nstring)
 rfc822_text = pair(CaselessLiteral(b"RFC822.TEXT"), nstring)
 rfc822_size = pair(CaselessLiteral(b"RFC822.SIZE"), integer)
 uid = pair(CaselessLiteral(b"UID"), integer)
+unknown_fetch_response_pair = pair(
+    Combine(CharacterSet(b" \t\r\n[<", invert=True)[1, ...])
+    + Opt(
+        Combine(Literal(b"[") + CharacterSet(b"]", invert=True)[0, ...] + Literal(b"]"))
+    )
+    + Opt(length),
+    nil | integer | nstring | nested_lists,
+)
 fetch_response_pair = (
     body_section
     | body_structure
@@ -125,6 +132,7 @@ fetch_response_pair = (
     | rfc822_text
     | rfc822_size
     | uid
+    | unknown_fetch_response_pair
 )
 
 fetch_response_line = (

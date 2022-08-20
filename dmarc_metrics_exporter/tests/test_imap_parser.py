@@ -196,6 +196,78 @@ RFC822_MESSAGE = RFC822_HEADER + RFC822_BODY
                 ),
             ),
         ),
+        (
+            b"1 FETCH (UNKNOWN NIL)",
+            (
+                1,
+                b"FETCH",
+                ((b"UNKNOWN", b"NIL"),),
+            ),
+        ),
+        (
+            b"1 FETCH (UNKNOWN 123)",
+            (
+                1,
+                b"FETCH",
+                ((b"UNKNOWN", 123),),
+            ),
+        ),
+        (
+            b'1 FETCH (UNKNOWN "foo")',
+            (
+                1,
+                b"FETCH",
+                ((b"UNKNOWN", b"foo"),),
+            ),
+        ),
+        (
+            b"1 FETCH (UNKNOWN {3}\r\nfoo)",
+            (
+                1,
+                b"FETCH",
+                ((b"UNKNOWN", b"foo"),),
+            ),
+        ),
+        (
+            b"1 FETCH (UNKNOWN (foo 123 ({6}\r\nfoobar)))",
+            (
+                1,
+                b"FETCH",
+                ((b"UNKNOWN", (b"foo", b"123", (b"foobar",))),),
+            ),
+        ),
+        (
+            b"1 FETCH (UNKNOWN.FOO NIL)",
+            (
+                1,
+                b"FETCH",
+                ((b"UNKNOWN.FOO", b"NIL"),),
+            ),
+        ),
+        (
+            b"1 FETCH (UNKNOWN.FOO[FIELD1 FIELD2 (ITEM1 ITEM2)] NIL)",
+            (
+                1,
+                b"FETCH",
+                ((b"UNKNOWN.FOO", b"[FIELD1 FIELD2 (ITEM1 ITEM2)]", b"NIL"),),
+            ),
+        ),
+        (
+            b"1 FETCH (UNKNOWN.FOO<42> NIL)",
+            (
+                1,
+                b"FETCH",
+                ((b"UNKNOWN.FOO", 42, b"NIL"),),
+            ),
+        ),
+        (
+            b"1 FETCH (UNKNOWN.FOO[FIELD1 FIELD2 (ITEM1 ITEM2)]<42> NIL)",
+            (
+                1,
+                b"FETCH",
+                ((b"UNKNOWN.FOO", b"[FIELD1 FIELD2 (ITEM1 ITEM2)]", 42, b"NIL"),),
+            ),
+        ),
     ],
 )
 async def test_parses_fetch_response_line(given_input, expected):
