@@ -159,7 +159,7 @@ response_text_code = (
     | Group(CaselessLiteral(b"UIDNEXT") + sp + integer)
     | Group(CaselessLiteral(b"UIDVALIDITY") + sp + integer)
     | Group(CaselessLiteral(b"UNSEEN") + sp + integer)
-    | Group(atom + Opt(sp + Combine(CharacterSet(b"\r\r]", invert=True)[1, ...])))
+    | Group(atom + Opt(sp + Combine(CharacterSet(b"\r\n]", invert=True)[1, ...])))
 )
 resp_text = Opt(
     Suppress(Literal(b"["))
