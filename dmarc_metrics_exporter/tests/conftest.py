@@ -30,15 +30,15 @@ class Greenmail:
 
     def is_ready(self) -> bool:
         return (
-            requests.get(f"{self.api_url}/service/readiness").status_code
+            requests.get(f"{self.api_url}/service/readiness", timeout=1).status_code
             == requests.codes.ok
         )
 
     def purge_mails(self):
-        requests.post(f"{self.api_url}/mail/purge").raise_for_status()
+        requests.post(f"{self.api_url}/mail/purge", timeout=5).raise_for_status()
 
     async def restart(self):
-        requests.post(f"{self.api_url}/service/reset")
+        requests.post(f"{self.api_url}/service/reset", timeout=5)
         await try_until_success(self.is_ready)
 
 
