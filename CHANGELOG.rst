@@ -6,6 +6,17 @@ All notable changes to this project will be documented in this file.
 The format is based on `Keep a Changelog <https://keepachangelog.com/en/1.0.0/>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
 
+[0.7.0] - [unreleased]
+----------------------
+
+Changed
+^^^^^^^
+
+* Renamed Ansible role `dmarc-metrics-exporter` to `dmarc_metrics_exporter`
+  [as `-` is no longer allowed in role
+  names](https://galaxy.ansible.com/docs/contributing/creating_role.html#role-names).
+
+
 [0.6.2] - [2022-09-24]
 ----------------------
 

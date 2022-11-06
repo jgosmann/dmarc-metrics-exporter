@@ -1,6 +1,6 @@
 ---
 galaxy_info:
-  role_name: dmarc-metrics-exporter
+  role_name: dmarc_metrics_exporter
   author: Jan Gosmann
   description: Export Prometheus metrics from DMARC reports.
   license: MIT
