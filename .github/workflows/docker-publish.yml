@@ -39,10 +39,10 @@ jobs:
     steps:
       - name: Set version from ref
         id: version
-        run: REF=${{ inputs.version }}; TAG=${REF#refs/*/}; echo ::set-output name=version::${TAG#v}
+        run: REF=${{ inputs.version }}; TAG=${REF#refs/*/}; echo "version=${TAG#v}" >> $GITHUB_OUTPUT
 
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       # https://github.com/docker/login-action
       - name: Log into registry ${{ env.REGISTRY }}

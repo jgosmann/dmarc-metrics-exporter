@@ -21,24 +21,24 @@ jobs:
           - name: Check static typing
             run: poetry run mypy dmarc_metrics_exporter
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: git fetch --no-tags --prune --depth=1 origin +refs/heads/main:refs/remotes/origin/main
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4.3.0
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3.0.11
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3.0.11
         with:
           path: .venv
-          key: ${{ runner.os }}-py3.10-venv-${{ hashFiles('pyproject.toml') }}
+          key: ${{ runner.os }}-py3.11-venv-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
-            ${{ runner.os }}-py3.10-venv-
+            ${{ runner.os }}-py3.11-venv-
       - uses: ./.github/actions/setup-project
 
       - name: ${{ matrix.check.name }}
@@ -48,21 +48,21 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.7', '3.8', '3.9', '3.10']
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4.3.0
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3.0.11
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3.0.11
         with:
           path: .venv
           key: ${{ runner.os }}-py${{ matrix.python-version }}-venv-${{ hashFiles('pyproject.toml') }}
@@ -74,30 +74,30 @@ jobs:
         run: docker-compose up -d
       - name: Test and measure coverage with pytest
         run: poetry run pytest --verbose --cov=dmarc_metrics_exporter --cov-report=xml
-      - uses: codecov/codecov-action@v1
+      - uses: codecov/codecov-action@v3
 
   release:
     runs-on: ubuntu-latest
     needs: [static-analysis, test]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4.3.0
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3.0.11
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3.0.11
         with:
           path: .venv
-          key: ${{ runner.os }}-py3.10-venv-${{ hashFiles('pyproject.toml') }}
+          key: ${{ runner.os }}-py3.11-venv-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
-            ${{ runner.os }}-py3.10-venv-
+            ${{ runner.os }}-py3.11-venv-
       - uses: ./.github/actions/setup-project
 
       - name: Publish to PyPI
@@ -109,7 +109,7 @@ jobs:
 
       - name: Set version
         id: version
-        run: echo ::set-output name=version::${GITHUB_REF#refs/*/v}
+        run: echo "version=${GITHUB_REF#refs/*/v}" >> $GITHUB_OUTPUT
 
       - name: Extract changelog
         id: changelog

@@ -59,16 +59,18 @@ async def test_successful_processing_of_incoming_queue_message(greenmail, tmp_pa
         "dkim_domain": "mydomain.de",
         "spf_domain": "my-spf-domain.de",
     }
-    expected_metrics = lambda processed_email_count: {
-        "dmarc_total": processed_email_count,
-        "dmarc_compliant_total": processed_email_count,
-        "dmarc_quarantine_total": 0,
-        "dmarc_reject_total": 0,
-        "dmarc_dkim_aligned_total": processed_email_count,
-        "dmarc_dkim_pass_total": processed_email_count,
-        "dmarc_spf_aligned_total": 0,
-        "dmarc_spf_pass_total": processed_email_count,
-    }
+
+    def expected_metrics(processed_email_count):
+        return {
+            "dmarc_total": processed_email_count,
+            "dmarc_compliant_total": processed_email_count,
+            "dmarc_quarantine_total": 0,
+            "dmarc_reject_total": 0,
+            "dmarc_dkim_aligned_total": processed_email_count,
+            "dmarc_dkim_pass_total": processed_email_count,
+            "dmarc_spf_aligned_total": 0,
+            "dmarc_spf_pass_total": processed_email_count,
+        }
 
     with dmarc_metrics_exporter(config_path):
         url = f"http://{config['listen_addr']}:{config['port']}/metrics"
