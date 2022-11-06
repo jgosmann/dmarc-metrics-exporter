@@ -1,48 +1,32 @@
 ---
-- name: Provide dmarc-metrics user and group
-  block:
-    - group:
-        name: dmarc-metrics
-        system: yes
-    - user:
-        name: dmarc-metrics
-        system: yes
-        group: dmarc-metrics
-
-- name: Ensure path for metrics.db exists and is writable
-  file:
-    path: /var/lib/dmarc-metrics-exporter
-    owner: dmarc-metrics
-    group: dmarc-metrics
-    mode: "0755"
-    state: directory
 
 - name: Provide configuration
-  template:
+  ansible.builtin.template:
     src: dmarc-metrics-exporter.json.j2
     dest: /etc/dmarc-metrics-exporter.json
     owner: root
-    group: dmarc-metrics
-    mode: "0640"
+    group: root
+    mode: 0640
+  notify: Restart dmarc-metrics-exporter
 
 - name: Install dmarc-metrics-exporter
-  become: yes
-  become_user: dmarc-metrics
-  pip:
+  ansible.builtin.pip:
     name: dmarc-metrics-exporter
     version: "{{ dmarc_metrics_exporter_version }}"
+    virtualenv_command: python3 -m venv
+    virtualenv: "{{ dmarc_metrics_exporter_virtualenv_path }}"
 
 - name: Install systemd service
-  copy:
-    src: dmarc-metrics-exporter.service
+  ansible.builtin.template:
+    src: dmarc-metrics-exporter.service.j2
     dest: /etc/systemd/system/dmarc-metrics-exporter.service
     owner: root
     group: root
-    mode: "0644"
+    mode: 0644
+  notify: Restart dmarc-metrics-exporter
 
 - name: Activate systemd service
-  systemd:
+  ansible.builtin.systemd:
     name: dmarc-metrics-exporter.service
-    daemon_reload: yes
+    state: started
     enabled: yes
-    state: restarted

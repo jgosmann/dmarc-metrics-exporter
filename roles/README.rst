@@ -41,6 +41,7 @@ Available role variables
 ------------------------
 
 * ``dmarc_metrics_exporter_version`` (string, default: ``""``): dmarc-metrics-exporter version to install.
+* ``dmarc_metrics_exporter_virtualenv_path`` (string, default: ``"/opt/dmarc_metrics_exporter"``): Path to create Python virtualenv in for the dmarc-metrics-exporter.
 * ``listen_addr`` (string, default ``"127.0.0.1"``): Listen address for the HTTP endpoint.
 * ``listen_port`` (number, default ``9797``): Port to listen on for the HTTP endpoint.
 * ``imap_host`` (string, default ``"localhost"``): Hostname of IMAP server to connect to.

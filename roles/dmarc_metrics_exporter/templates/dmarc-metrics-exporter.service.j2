@@ -1,0 +1,22 @@
+[Unit]
+Description=Export Prometheus metrics from DMARC reports.
+
+[Service]
+ExecStart={{ dmarc_metrics_exporter_virtualenv_path }}/bin/python3 -m dmarc_metrics_exporter --configuration "${CREDENTIALS_DIRECTORY}/dmarc-metrics-exporter.json"
+Environment=PYTHONUNBUFFERED=1
+Restart=on-failure
+
+DynamicUser=yes
+User=dmarc-metrics
+
+LoadCredential=dmarc-metrics-exporter.json:/etc/dmarc-metrics-exporter.json
+StateDirectory=dmarc-metrics-exporter
+
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=full
+ProtectHome=read-only
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=default.target

@@ -15,6 +15,9 @@ Changed
 * Renamed Ansible role `dmarc-metrics-exporter` to `dmarc_metrics_exporter`
   [as `-` is no longer allowed in role
   names](https://galaxy.ansible.com/docs/contributing/creating_role.html#role-names).
+* ``dmarc_metrics_exporter_virtualenv_path`` variable has been added
+* The Ansible role no longer creates a system user. Instead the systemd
+  "DynamicUser" feature is used.
 
 
 [0.6.2] - [2022-09-24]
