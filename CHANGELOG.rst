@@ -12,8 +12,8 @@ and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0
 Changed
 ^^^^^^^
 
-* Renamed Ansible role `dmarc-metrics-exporter` to `dmarc_metrics_exporter`
-  [as `-` is no longer allowed in role
+* Renamed Ansible role ``dmarc-metrics-exporter`` to ``dmarc_metrics_exporter``
+  [as ``-`` is no longer allowed in role
   names](https://galaxy.ansible.com/docs/contributing/creating_role.html#role-names).
 * ``dmarc_metrics_exporter_virtualenv_path`` variable has been added
 * The Ansible role no longer creates a system user. Instead the systemd
@@ -46,14 +46,14 @@ Fixed
 Added
 ^^^^^
 
-* `dmarc-metrics-exporter` script to allow invocation without the `python -m`
+* ``dmarc-metrics-exporter`` script to allow invocation without the `python -m`
   syntax.
 
 Fixed
 ^^^^^
 
 * Allow installation with Python 3.10.
-* Use `poetry-core` as build system to allow installations with fetching fewer
+* Use ``poetry-core`` as build system to allow installations with fetching fewer
   Poetry dependencies.
 
 
@@ -75,7 +75,7 @@ Added
 * Possibility to configure log output with ``logging`` key in the configuration
   file. `See logging.config documentation for details.
   <https://docs.python.org/3/library/logging.config.html#configuration-dictionary-schema>`_
-* `--debug` flag to quickly enable debug log output.
+* ``--debug`` flag to quickly enable debug log output.
 
 
 Fixed
