@@ -3,9 +3,10 @@ from contextlib import contextmanager
 from typing import Any, Generator, Tuple
 
 import uvicorn
-from prometheus_client.core import REGISTRY, CounterMetricFamily
+from prometheus_client.core import REGISTRY, CounterMetricFamily, GaugeMetricFamily
 from prometheus_client.exposition import make_asgi_app
 
+import dmarc_metrics_exporter
 from dmarc_metrics_exporter.dmarc_event import Disposition, Meta
 from dmarc_metrics_exporter.dmarc_metrics import DmarcMetricsCollection
 
@@ -55,6 +56,13 @@ class PrometheusExporter:
             yield self._metrics
 
     def collect(self) -> Tuple[Any, ...]:
+        build_info = GaugeMetricFamily(
+            "dmarc_metrics_exporter_build_info",
+            "A metric with a constant '1' value labeled by version of the dmarc-metrics-exporter.",
+            labels=("version",),
+        )
+        build_info.add_metric((dmarc_metrics_exporter.__version__,), 1.0)
+
         dmarc_total = CounterMetricFamily(
             "dmarc_total", "Total number of reported messages.", labels=self.LABELS
         )
@@ -93,6 +101,7 @@ class PrometheusExporter:
             "Total number of messages with raw DKIM pass.",
             labels=self.LABELS,
         )
+
         with self._metrics_lock:
             for meta, metrics in self._metrics.items():
                 labels = self._meta2labels(meta)
@@ -108,7 +117,9 @@ class PrometheusExporter:
                 dmarc_spf_pass_total.add_metric(labels, metrics.spf_pass_count)
                 dmarc_dkim_aligned_total.add_metric(labels, metrics.dkim_aligned_count)
                 dmarc_dkim_pass_total.add_metric(labels, metrics.dkim_pass_count)
+
         return (
+            build_info,
             dmarc_total,
             dmarc_compliant_total,
             dmarc_quarantine_total,

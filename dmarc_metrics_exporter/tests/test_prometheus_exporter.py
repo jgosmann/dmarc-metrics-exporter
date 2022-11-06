@@ -5,6 +5,7 @@ import pytest
 from prometheus_client.parser import text_string_to_metric_families
 from prometheus_client.samples import Sample
 
+import dmarc_metrics_exporter
 from dmarc_metrics_exporter.dmarc_event import Disposition, Meta
 from dmarc_metrics_exporter.dmarc_metrics import DmarcMetrics, DmarcMetricsCollection
 from dmarc_metrics_exporter.prometheus_exporter import PrometheusExporter
@@ -83,3 +84,28 @@ async def test_prometheus_exporter():
                 )
                 in samples
             )
+
+
+@pytest.mark.asyncio
+async def test_build_info():
+    exporter = PrometheusExporter(DmarcMetricsCollection())
+    async with exporter.start_server() as server:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f"http://{server.host}:{server.port}/metrics"
+            ) as response:
+                served_metrics = text_string_to_metric_families(await response.text())
+
+    samples = [
+        sample for served_metric in served_metrics for sample in served_metric.samples
+    ]
+    assert (
+        Sample(
+            "dmarc_metrics_exporter_build_info",
+            labels={"version": dmarc_metrics_exporter.__version__},
+            value=1,
+            timestamp=None,
+            exemplar=None,
+        )
+        in samples
+    )

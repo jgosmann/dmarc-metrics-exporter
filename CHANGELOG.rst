@@ -9,6 +9,12 @@ and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0
 [0.7.0] - [unreleased]
 ----------------------
 
+Added
+^^^^^
+
+* Added the ``dmarc_metrics_exporter_build_info`` metric which contains version
+  information in its labels.
+
 Changed
 ^^^^^^^
 
