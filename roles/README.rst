@@ -7,7 +7,9 @@ To use the role add
 
 .. code-block:: yaml
 
-    - src: https://github.com/jgosmann/dmarc-metrics-exporter.git
+    roles:
+      - name: dmarc_metrics_exporter
+        src: https://github.com/jgosmann/dmarc-metrics-exporter.git
 
 to your ``requirements.yml``
 and then install the role with:
