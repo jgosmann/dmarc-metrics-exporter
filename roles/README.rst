@@ -48,6 +48,8 @@ Available role variables
 * ``imap_port`` (number, default ``993``): Port of the IMAP server to connect to.
 * ``imap_username`` (string, required): Login username for the IMAP connection.
 * ``imap_password``: (string, required): Login password for the IMAP connection.
+* ``imap_use_ssl``: (boolean, default ``true``): Whether to use SSL encryption on the IMAP connection.
+* ``imap_verify_certificate``: (boolean, default ``true``): Whether to verify the SSL certificate.
 * ``folder_inbox`` (string, default ``"INBOX"``): IMAP mailbox that is checked for incoming DMARC aggregate reports.
 * ``folder_done`` (string, default ``"Archive"``): IMAP mailbox that successfully processed reports are moved to.
 * ``folder_error``: (string, default ``"Invalid"``): IMAP mailbox that emails are moved to that could not be processed.

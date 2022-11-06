@@ -5,7 +5,9 @@
         "host": "{{ imap_host }}",
         "port": {{ imap_port }},
         "username": "{{ imap_username }}",
-        "password": "{{ imap_password }}"
+        "password": "{{ imap_password }}",
+        "use_ssl": {{ imap_use_ssl | to_json }},
+        "verify_certificate": {{ imap_verify_certificate | to_json }}
     },
     "folders": {
         "inbox": "{{ folder_inbox }}",

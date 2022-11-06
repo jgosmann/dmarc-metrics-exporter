@@ -7,6 +7,9 @@ listen_port: 9797
 
 imap_host: "localhost"
 imap_port: 993
+imap_use_ssl: yes
+imap_verify_certificate: yes
+
 poll_interval_seconds: 60
 deduplication_max_seconds: 604800
 

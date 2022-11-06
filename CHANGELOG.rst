@@ -18,6 +18,8 @@ Changed
 * ``dmarc_metrics_exporter_virtualenv_path`` variable has been added
 * The Ansible role no longer creates a system user. Instead the systemd
   "DynamicUser" feature is used.
+* Add the ``imap_use_ssl`` and ``imap_verify_certificate`` variables to the
+  Ansible role.
 
 
 [0.6.2] - [2022-09-24]
