@@ -6,12 +6,13 @@ All notable changes to this project will be documented in this file.
 The format is based on `Keep a Changelog <https://keepachangelog.com/en/1.0.0/>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
 
-[0.7.0] - [unreleased]
+[0.7.0] - [2022-11-06]
 ----------------------
 
 Added
 ^^^^^
 
+* Officially declare Python 3.11 support.
 * Added the ``dmarc_metrics_exporter_build_info`` metric which contains version
   information in its labels.
 
