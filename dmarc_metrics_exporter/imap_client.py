@@ -227,7 +227,7 @@ class ImapClient:
                     self._writer, self._server_ready, self.timeout_seconds
                 )
                 _, pending = await asyncio.wait(
-                    [write_command(cmd_writer), wait_response],
+                    [asyncio.ensure_future(write_command(cmd_writer)), wait_response],
                     return_when=asyncio.FIRST_COMPLETED,
                 )
 
