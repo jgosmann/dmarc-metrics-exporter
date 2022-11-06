@@ -36,7 +36,6 @@ xsdata = "^21.9"
 [tool.poetry.dev-dependencies]
 aiohttp = "^3.7.3"
 black = "^22.2.0"
-docker = "^5.0.3"
 isort = "^5.6.4"
 mypy = "^0.910"
 pylint = "^2.6.0"
