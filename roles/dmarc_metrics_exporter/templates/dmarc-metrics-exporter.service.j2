@@ -12,11 +12,31 @@ User=dmarc-metrics
 LoadCredential=dmarc-metrics-exporter.json:/etc/dmarc-metrics-exporter.json
 StateDirectory=dmarc-metrics-exporter
 
+CapabilityBoundingSet=
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+NoNewPrivileges=yes
 PrivateTmp=yes
 PrivateDevices=yes
+ProcSubset=pid
+ProtectClock=yes
+ProtectControlGroups=yes
+ProtectHome=yes
+ProtectHostname=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectProc=invisible
 ProtectSystem=full
-ProtectHome=read-only
-NoNewPrivileges=yes
+PrivateDevices=yes
+PrivateUsers=yes
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=yes
+RestrictRealtime=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+UMask=0077
 
 [Install]
 WantedBy=default.target
