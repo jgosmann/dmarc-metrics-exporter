@@ -3,7 +3,7 @@ name: CI and release pipeline
 on:
   pull_request:
   push:
-    branches: ["main"]
+    branches: ["main", "develop"]
     tags: ["*"]
 
 jobs:
