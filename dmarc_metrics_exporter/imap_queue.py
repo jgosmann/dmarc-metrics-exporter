@@ -79,10 +79,19 @@ class ImapQueue:
                     )
                 )
                 while not fetch_task.done() or not client.fetched_queue.empty():
-                    uid, msg = self._extract_uid_and_msg(
-                        await client.fetched_queue.get()
-                    )
-                    if uid is not None and msg is not None:
+                    fetched = await client.fetched_queue.get()
+                    uid, msg = self._extract_uid_and_msg(fetched)
+                    if uid is None:
+                        logger.warning(
+                            "Failed to extract UID for message %s", fetched[0]
+                        )
+                    elif msg is None:
+                        logger.warning(
+                            "Failed to extract RFC822 message for message %s (UID %s)",
+                            fetched[0],
+                            uid,
+                        )
+                    else:
                         try:
                             logger.debug("Processing UID %s", uid)
                             await handler(msg)

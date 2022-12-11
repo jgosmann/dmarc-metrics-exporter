@@ -9,6 +9,12 @@ and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0
 [0.8.0] - [unreleased]
 ----------------------
 
+Added
+^^^^^
+
+* More logging when email are not processed and more debug logging on closing
+  the IMAP connection.
+
 Changed
 ^^^^^^^
 

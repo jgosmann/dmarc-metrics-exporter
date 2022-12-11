@@ -168,12 +168,16 @@ class ImapClient:
 
     async def __aexit__(self, exc_type, exc, traceback):
         if not self._writer.is_closing():
+            logger.debug("Logging out (timeout %s seconds)", self.timeout_seconds)
             with contextlib.suppress(asyncio.TimeoutError):
                 await wait_for(self._logout(), self.timeout_seconds)
             self._writer.close()
+            logger.debug("Waiting for writer to be closed.")
             await self._writer.wait_closed()
+        logger.debug("Processing remaining responses after connection close.")
         await self._process_responses_task
         self._server_ready.clear()
+        logger.debug("Connection closed.")
 
     async def _process_responses(self, reader: StreamReader):
         try:
