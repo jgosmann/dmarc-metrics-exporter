@@ -14,6 +14,13 @@ Changed
 
 * The systemd unit provided as part of the Ansible role has been hardened.
 
+Fixed
+^^^^^
+
+* Correctly handle logout timeout when closing IMAP connection. Previously,
+  a timeout during logout would have aborted the process of closing the
+  connection.
+
 
 [0.7.0] - [2022-11-06]
 ----------------------

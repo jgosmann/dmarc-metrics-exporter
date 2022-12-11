@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import itertools
 import logging
 import ssl
@@ -167,7 +168,8 @@ class ImapClient:
 
     async def __aexit__(self, exc_type, exc, traceback):
         if not self._writer.is_closing():
-            await wait_for(self._logout(), self.timeout_seconds)
+            with contextlib.suppress(asyncio.TimeoutError):
+                await wait_for(self._logout(), self.timeout_seconds)
             self._writer.close()
             await self._writer.wait_closed()
         await self._process_responses_task
