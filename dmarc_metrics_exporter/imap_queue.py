@@ -111,8 +111,8 @@ class ImapQueue:
     ) -> Tuple[Optional[int], Optional[EmailMessage]]:
         uid, msg = None, None
         if parsed_response[1] == b"FETCH":
+            mail_body = None
             for key, value in cast(Tuple[Any, Any], parsed_response[2]):
-                mail_body = None
                 if key == b"UID":
                     uid = cast(int, value)
                 elif key == b"RFC822":

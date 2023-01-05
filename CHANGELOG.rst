@@ -6,6 +6,17 @@ All notable changes to this project will be documented in this file.
 The format is based on `Keep a Changelog <https://keepachangelog.com/en/1.0.0/>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
 
+[0.8.1] - [2023-01-05]
+----------------------
+
+Fixed
+^^^^^
+
+* With some IMAP servers emails were not correctly processed if the UID and
+  RFC822 where returned in reverse order in the response.
+  (`#33 <https://github.com/jgosmann/dmarc-metrics-exporter/issues/33>`_)
+
+
 [0.8.0] - [2022-12-11]
 ----------------------
 

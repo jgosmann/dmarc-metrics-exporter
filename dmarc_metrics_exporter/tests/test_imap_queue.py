@@ -139,3 +139,17 @@ async def test_reconnects_if_imap_connection_is_lost(greenmail):
     finally:
         if queue is not None:
             await queue.stop_consumer()
+
+
+@pytest.mark.parametrize(
+    "parsed_response",
+    [
+        (1, b"FETCH", ((b"UID", 42), (b"RFC822", bytearray(b"mail body")))),
+        (1, b"FETCH", ((b"RFC822", bytearray(b"mail body")), (b"UID", 42))),
+    ],
+)
+def test_regression_extract_uid_and_msg_works_with_any_order(parsed_response):
+    # pylint: disable=protected-access
+    uid, msg = ImapQueue._extract_uid_and_msg(parsed_response)
+    assert uid == 42
+    assert isinstance(msg, EmailMessage)
