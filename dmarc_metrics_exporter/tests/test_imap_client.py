@@ -12,7 +12,7 @@ from asyncio import (
     start_server,
     wait_for,
 )
-from typing import Callable, Coroutine, Dict
+from typing import Callable, Coroutine, Dict, Optional
 
 import pytest
 
@@ -403,7 +403,9 @@ class MockImapServer:
         self,
         host: str = "localhost",
         port: int = 4143,
-        command_handlers: Dict[bytes, Callable[[StreamWriter], Coroutine]] = None,
+        command_handlers: Optional[
+            Dict[bytes, Callable[[StreamWriter], Coroutine]]
+        ] = None,
     ):
         self.host = host
         self.port = port

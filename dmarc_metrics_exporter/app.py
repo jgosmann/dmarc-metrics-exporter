@@ -6,7 +6,7 @@ import logging.config
 from asyncio import CancelledError
 from email.message import EmailMessage
 from pathlib import Path
-from typing import Any, Callable, Sequence, Tuple
+from typing import Any, Callable, Optional, Sequence, Tuple
 
 from dmarc_metrics_exporter.deserialization import (
     convert_to_events,
@@ -89,7 +89,7 @@ class App:
         exporter_cls: Callable[[DmarcMetricsCollection], Any] = PrometheusExporter,
         autosave_interval_seconds: float = 60,
         deduplication_max_seconds: float = 7 * 24 * 60 * 60,
-        seen_reports_db: Path = None
+        seen_reports_db: Optional[Path] = None
     ):
         self.prometheus_addr = prometheus_addr
         self.exporter = exporter_cls(DmarcMetricsCollection())
