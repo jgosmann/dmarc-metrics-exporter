@@ -15,6 +15,7 @@
     version: "{{ dmarc_metrics_exporter_version }}"
     virtualenv_command: python3 -m venv
     virtualenv: "{{ dmarc_metrics_exporter_virtualenv_path }}"
+  notify: Restart dmarc-metrics-exporter
 
 - name: Install systemd service
   ansible.builtin.template:
