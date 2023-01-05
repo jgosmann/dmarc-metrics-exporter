@@ -6,7 +6,7 @@ from asyncio.tasks import Task
 from dataclasses import astuple, dataclass
 from email.message import EmailMessage
 from email.parser import BytesParser
-from typing import Any, Awaitable, Callable, Optional, Tuple, cast
+from typing import Any, Awaitable, Callable, Iterable, Optional, Tuple, cast
 from urllib.parse import ParseResult
 
 from dmarc_metrics_exporter.imap_client import ConnectionConfig, ImapClient
@@ -112,7 +112,7 @@ class ImapQueue:
         uid, msg = None, None
         if parsed_response[1] == b"FETCH":
             mail_body = None
-            for key, value in cast(Tuple[Any, Any], parsed_response[2]):
+            for key, value in cast(Iterable[Tuple[Any, Any]], parsed_response[2]):
                 if key == b"UID":
                     uid = cast(int, value)
                 elif key == b"RFC822":
