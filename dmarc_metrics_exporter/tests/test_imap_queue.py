@@ -94,6 +94,7 @@ async def test_error_handling_when_processing_queue_message(greenmail):
 
     async def handler(_queue_msg: EmailMessage, is_done=is_done):
         is_done.set()
+        # pylint: disable=broad-exception-raised
         raise Exception("Error raised on purpose.")
 
     # When

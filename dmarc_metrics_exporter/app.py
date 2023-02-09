@@ -46,10 +46,10 @@ def main(argv: Sequence[str]):
     logging.config.dictConfig(
         configuration.get(
             "logging",
-            dict(
-                version=1,
-                disable_existing_loggers=False,
-            ),
+            {
+                "version": 1,
+                "disable_existing_loggers": False,
+            },
         )
     )
 
