@@ -6,8 +6,8 @@ All notable changes to this project will be documented in this file.
 The format is based on `Keep a Changelog <https://keepachangelog.com/en/1.0.0/>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
 
-[0.9.1] - [2023-02-09]
-----------------------
+[0.9.1] - 2023-02-09
+--------------------
 
 Fixed
 ^^^^^
@@ -19,8 +19,8 @@ Fixed
   `bite-parser v0.2.2 <https://github.com/jgosmann/bite-parser/releases/tag/v0.2.2>`_)
 
 
-[0.9.0] - [2023-01-12]
-----------------------
+[0.9.0] - 2023-01-12
+--------------------
 
 Changed
 ^^^^^^^
@@ -29,8 +29,8 @@ Changed
 * Drop support for Python 3.7.
 
 
-[0.8.1] - [2023-01-05]
-----------------------
+[0.8.1] - 2023-01-05
+--------------------
 
 Fixed
 ^^^^^
@@ -40,8 +40,8 @@ Fixed
   (`#33 <https://github.com/jgosmann/dmarc-metrics-exporter/issues/33>`_)
 
 
-[0.8.0] - [2022-12-11]
-----------------------
+[0.8.0] - 2022-12-11
+--------------------
 
 Added
 ^^^^^
@@ -62,8 +62,8 @@ Fixed
   connection.
 
 
-[0.7.0] - [2022-11-06]
-----------------------
+[0.7.0] - 2022-11-06
+--------------------
 
 Added
 ^^^^^
@@ -85,8 +85,8 @@ Changed
   Ansible role.
 
 
-[0.6.2] - [2022-09-24]
-----------------------
+[0.6.2] - 2022-09-24
+--------------------
 
 Fixed
 ^^^^^
@@ -95,8 +95,8 @@ Fixed
   (`#29 <https://github.com/jgosmann/dmarc-metrics-exporter/issues/29>`_)
 
 
-[0.6.1] - [2022-07-17]
-----------------------
+[0.6.1] - 2022-07-17
+--------------------
 
 Fixed
 ^^^^^
@@ -105,8 +105,8 @@ Fixed
   should be fixed now.
 
 
-[0.6.0] - [2022-06-11]
-----------------------
+[0.6.0] - 2022-06-11
+--------------------
 
 Added
 ^^^^^
@@ -122,8 +122,8 @@ Fixed
   Poetry dependencies.
 
 
-[0.5.1] - [2022-02-09]
-----------------------
+[0.5.1] - 2022-02-09
+--------------------
 
 Added
 ^^^^^
@@ -131,8 +131,8 @@ Added
 * Officially declare Python 3.10 support.
 
 
-[0.5.0] - [2022-02-09]
-----------------------
+[0.5.0] - 2022-02-09
+--------------------
 
 Added
 ^^^^^
