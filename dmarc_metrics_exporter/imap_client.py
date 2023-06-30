@@ -100,14 +100,10 @@ class _ImapCommandWriter:
     async def write_string_literal(self, string: str):
         encoded = string.encode("utf-8")
         self._server_ready.clear()
-        self.writer.write(b"{")
-        self.writer.write(str(len(encoded)).encode("ascii"))
-        self.writer.write(b"}\r\n")
-        await self._drain()
+        await self.write_raw(b"{" + str(len(encoded)).encode("ascii") + b"}\r\n")
         await self._server_ready.wait()
 
-        self.writer.write(encoded)
-        await self._drain()
+        await self.write_raw(encoded)
 
 
 class _CommandsInUse:
