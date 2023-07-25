@@ -6,6 +6,17 @@ All notable changes to this project will be documented in this file.
 The format is based on `Keep a Changelog <https://keepachangelog.com/en/1.0.0/>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
 
+[0.9.3] - unreleased
+--------------------
+
+Fixed
+^^^^^
+
+* Gracefully handle unknown properties within report XML. In particular, this
+  should allow to process reports send by Google again, which was not working
+  anymore starting June 2023.
+
+
 [0.9.2] - 2023-06-30
 --------------------
 

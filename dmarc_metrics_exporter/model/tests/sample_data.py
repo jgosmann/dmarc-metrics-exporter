@@ -22,6 +22,7 @@ def create_sample_xml(*, report_id: str = "12598866915817748661") -> str:
     <p>none</p>
     <sp>none</sp>
     <pct>100</pct>
+    <np>none</np>
   </policy_published>
   <record>
     <row>

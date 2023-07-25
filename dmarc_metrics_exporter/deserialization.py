@@ -7,6 +7,7 @@ from typing import Callable, Generator, Mapping, Optional
 from zipfile import ZipFile
 
 from xsdata.formats.dataclass.context import XmlContext
+from xsdata.formats.dataclass.parsers.config import ParserConfig
 from xsdata.formats.dataclass.parsers.xml import XmlParser
 
 from dmarc_metrics_exporter.dmarc_event import (
@@ -49,7 +50,9 @@ content_type_handlers: Mapping[str, Callable[..., Generator[str, None, None]]] =
 def get_aggregate_report_from_email(
     msg: EmailMessage,
 ) -> Generator[Feedback, None, None]:
-    parser = XmlParser(context=XmlContext())
+    parser = XmlParser(
+        context=XmlContext(), config=ParserConfig(fail_on_unknown_properties=False)
+    )
     has_found_a_report = False
     for part in msg.walk():
         if part.get_content_type() in content_type_handlers:
