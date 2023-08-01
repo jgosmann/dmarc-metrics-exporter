@@ -13,7 +13,7 @@ repos:
   hooks:
   - id: isort
 - repo: https://github.com/psf/black
-  rev: 22.12.0
+  rev: 23.7.0
   hooks:
   - id: black
 - repo: https://github.com/PyCQA/pylint
@@ -22,15 +22,15 @@ repos:
   - id: pylint
     additional_dependencies:
     - aiohttp==3.7.3
-    - bite-parser==0.2.2
+    - bite-parser==0.2.3
     - dataclasses-serialization==1.3.1
-    - prometheus_client==0.11
+    - prometheus_client==0.17.1
     - pytest==7.4.0
     - requests==2.26.0
-    - uvicorn==0.15.0
+    - uvicorn==0.21.1
     - xsdata==23.7
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v0.991
+  rev: v1.4.1
   hooks:
   - id: mypy
     additional_dependencies: ["types-requests==2.28.11.12"]

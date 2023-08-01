@@ -25,22 +25,22 @@ version = "0.9.3" # Update also in __init__.py!
 dmarc-metrics-exporter = "dmarc_metrics_exporter.__main__:run"
 
 [tool.poetry.dependencies]
-bite-parser = "^0.2.2"
+bite-parser = "^0.2.3"
 dataclasses-serialization = "^1.3.1"
-prometheus_client = "^0.15.0"
+prometheus_client = "^0.17.1"
 python = "^3.8"
 typing-extensions = "^4.0.1"
-uvicorn = {extras = ["standard"], version = "^0.19.0"}
+uvicorn = {extras = ["standard"], version = "^0.23.2"}
 xsdata = ">=21.9"
 
 [tool.poetry.dev-dependencies]
 aiohttp = "^3.7.3"
-black = "^22.12.0"
+black = "^23.7.0"
 isort = "^5.11.4"
-mypy = "^0.991"
-pylint = "^2.15.9"
+mypy = "^1.4.1"
+pylint = "^2.16.9"
 pytest = "^7.2.0"
-pytest-asyncio = "^0.20.1"
+pytest-asyncio = "^0.21.1"
 pytest-cov = "^4.0.0"
 requests = "^2.26.0"
 types-requests = "^2.25.11"
