@@ -16,10 +16,9 @@ from asyncio import (
 )
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Coroutine, Dict, FrozenSet, Optional, Union
+from typing import Callable, Coroutine, Dict, FrozenSet, Literal, Optional, Union
 
 from bite import parse_incremental
-from typing_extensions import Literal
 
 from .imap_parser import response as response_grammar
 
