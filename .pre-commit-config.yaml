@@ -2,7 +2,7 @@
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.3.0
+  rev: v4.4.0
   hooks:
   - id: trailing-whitespace
   - id: end-of-file-fixer
@@ -17,7 +17,7 @@ repos:
   hooks:
   - id: black
 - repo: https://github.com/PyCQA/pylint
-  rev: v2.16.1
+  rev: v2.17.5
   hooks:
   - id: pylint
     additional_dependencies:
@@ -25,10 +25,10 @@ repos:
     - bite-parser==0.2.2
     - dataclasses-serialization==1.3.1
     - prometheus_client==0.11
-    - pytest==7.2.1
+    - pytest==7.4.0
     - requests==2.26.0
     - uvicorn==0.15.0
-    - xsdata==21.9
+    - xsdata==23.7
 - repo: https://github.com/pre-commit/mirrors-mypy
   rev: v0.991
   hooks:
