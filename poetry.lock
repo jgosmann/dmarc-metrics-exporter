@@ -178,13 +178,13 @@ tests-no-zope = ["attrs[tests-mypy]", "cloudpickle", "hypothesis", "pympler", "p
 
 [[package]]
 name = "bite-parser"
-version = "0.2.3"
+version = "0.2.4"
 description = "Asynchronous parser taking incremental bites out of your byte input stream."
 optional = false
 python-versions = ">=3.8,<4.0"
 files = [
-    {file = "bite_parser-0.2.3-py3-none-any.whl", hash = "sha256:c5ed5ec89cf385a2d5d407c7d13475fb92947cf0da2f807739f9a0bf023da08a"},
-    {file = "bite_parser-0.2.3.tar.gz", hash = "sha256:e597663a19f1a412385c6813e27f0912b8aa384922519d4273debfa7296e85ee"},
+    {file = "bite_parser-0.2.4-py3-none-any.whl", hash = "sha256:e2209ac3c25c9951d2d80579d7ffa7584d325666e3387a5a6f6b7e5f1f5c5494"},
+    {file = "bite_parser-0.2.4.tar.gz", hash = "sha256:52ad850e8a39833b4c46ab5d90a617d1150b863160cbe0deba30ba0536770992"},
 ]
 
 [[package]]
@@ -1553,4 +1553,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "cf38b6488930d15e46bc4186200f934de5c324baa9cdd9570459d48d94287f3b"
+content-hash = "1746c7ec4ecbf41542efd16440205b4be744a5a5a1a967699c49150bae82e661"
