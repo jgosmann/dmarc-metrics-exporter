@@ -27,7 +27,7 @@ dmarc-metrics-exporter = "dmarc_metrics_exporter.__main__:run"
 [tool.poetry.dependencies]
 bite-parser = "^0.2.3"
 dataclasses-serialization = "^1.3.1"
-prometheus_client = "^0.17.1"
+prometheus_client = "^0.19.0"
 python = "^3.8"
 uvicorn = {extras = ["standard"], version = "^0.23.2"}
 xsdata = ">=21.9"
