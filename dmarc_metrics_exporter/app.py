@@ -80,6 +80,7 @@ class App:
     # pylint: disable=too-many-instance-attributes
     _seen_reports: ExpiringSet[Tuple[str, str]]
 
+    # pylint: disable=too-many-arguments
     def __init__(
         self,
         *,
