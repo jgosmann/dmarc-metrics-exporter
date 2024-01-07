@@ -10,6 +10,7 @@ classifiers = [
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Topic :: Communications :: Email",
   "Topic :: System :: Monitoring",
 ]
@@ -19,7 +20,7 @@ license = "MIT"
 name = "dmarc-metrics-exporter"
 readme = "README.rst"
 repository = "https://github.com/jgosmann/dmarc-metrics-exporter/"
-version = "0.10.0" # Update also in __init__.py!
+version = "0.10.1" # Update also in __init__.py!
 
 [tool.poetry.scripts]
 dmarc-metrics-exporter = "dmarc_metrics_exporter.__main__:run"
