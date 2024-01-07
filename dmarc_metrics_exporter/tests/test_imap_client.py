@@ -84,11 +84,8 @@ async def test_fetch_non_ascii_chars(greenmail):
         await client.fetch(b"1:1", b"(RFC822)")
         fetched_email = await wait_for(client.fetched_queue.get(), 5)
         assert fetched_email[:2] == (1, b"FETCH")
-        assert all(
-            value.endswith("üüüü\r\n".encode("utf-8"))
-            for key, value in fetched_email[2]
-            if key == b"RFC822"
-        )
+        body = next(value for key, value in fetched_email[2] if key == b"RFC822")
+        assert body.endswith("üüüü\r\n".encode("utf-8"))
 
 
 @pytest.mark.asyncio
