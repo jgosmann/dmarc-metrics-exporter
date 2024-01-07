@@ -12,7 +12,7 @@ from asyncio import (
     start_server,
     wait_for,
 )
-from typing import Callable, Coroutine, Dict, Optional
+from typing import Callable, Coroutine, Dict, List, Optional
 
 import pytest
 
@@ -408,6 +408,7 @@ class MockImapServer:
         self.command_handlers = command_handlers or {}
         self._server = None
         self._write_lock = asyncio.Lock()
+        self._tasks: List[asyncio.Task] = []
 
     @property
     def connection_config(self) -> ConnectionConfig:
@@ -448,7 +449,12 @@ class MockImapServer:
                     await writer.drain()
                     remainder += await reader.readline()
 
-            asyncio.create_task(self._finish_command_handling(tag, command, writer))
+            self._tasks.append(
+                asyncio.create_task(self._finish_command_handling(tag, command, writer))
+            )
+
+        await asyncio.gather(*self._tasks)
+        writer.close()
 
     async def _finish_command_handling(
         self, tag: bytes, command: bytes, writer: StreamWriter
