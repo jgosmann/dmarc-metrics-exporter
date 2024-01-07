@@ -19,6 +19,7 @@ from enum import Enum
 from typing import Callable, Coroutine, Dict, FrozenSet, Literal, Optional, Union
 
 from bite import parse_incremental
+from bite.parsers import ParsedNode
 
 from .imap_parser import response as response_grammar
 
@@ -73,6 +74,9 @@ class _ImapTag:
 
     async def wait_response(self):
         await self._response_received.wait()
+
+    def has_response(self) -> bool:
+        return self._response_received.is_set()
 
     def set_response(self, state: bytes, text: bytes):
         logger.debug("IMAP command '%s' completed with '%s %s'", self.name, state, text)
@@ -187,31 +191,34 @@ class ImapClient:
                 if response[0] == b"+":
                     self._server_ready.set()
                 elif response[0] == b"*":
-                    if response[1] == b"OK":
-                        self._server_ready.set()
-                    elif response[1] == b"CAPABILITY":
-                        logger.debug(
-                            "IMAP server reports capabilities: %s", response[2]
-                        )
-                        self._capabilities = frozenset(
-                            c.strip().upper()
-                            for c in response[2].decode("utf-8").split(" ")
-                        )
-                    elif len(response) >= 3 and response[2] == b"EXISTS":
-                        self.num_exists = response[1]
-                    elif len(response) >= 3 and response[2] == b"EXPUNGE":
-                        if self.num_exists is not None:
-                            self.num_exists -= 1
-                    elif len(response) >= 3 and response[2] == b"FETCH":
-                        await self.fetched_queue.put(response[1:])
-                    else:
-                        logger.debug("Ignored untagged IMAP response: %s", response[1])
+                    await self._process_untagged_response(response)
                 else:
                     tag_name, state, text = response[0:3]
                     self._tag_completions[tag_name].set_response(state, text)
             logger.debug("End of response stream.")
         except Exception:  # pylint: disable=broad-except
             logger.exception("Error while processing server responses.")
+            for tag_completion in self._tag_completions.values():
+                if not tag_completion.has_response():
+                    tag_completion.set_response(b"NO", b"")
+
+    async def _process_untagged_response(self, response: ParsedNode):
+        if response[1] == b"OK":
+            self._server_ready.set()
+        elif response[1] == b"CAPABILITY":
+            logger.debug("IMAP server reports capabilities: %s", response[2])
+            self._capabilities = frozenset(
+                c.strip().upper() for c in response[2].decode("utf-8").split(" ")
+            )
+        elif len(response) >= 3 and response[2] == b"EXISTS":
+            self.num_exists = response[1]
+        elif len(response) >= 3 and response[2] == b"EXPUNGE":
+            if self.num_exists is not None:
+                self.num_exists -= 1
+        elif len(response) >= 3 and response[2] == b"FETCH":
+            await self.fetched_queue.put(response[1:])
+        else:
+            logger.debug("Ignored untagged IMAP response: %s", response[1])
 
     async def _command(
         self, name: str, write_command: Callable[[_ImapCommandWriter], Coroutine]
