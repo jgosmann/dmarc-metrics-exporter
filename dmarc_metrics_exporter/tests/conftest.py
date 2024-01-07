@@ -1,5 +1,6 @@
 import asyncio
 import smtplib
+import ssl
 import time
 from dataclasses import astuple, dataclass
 from email.message import EmailMessage
@@ -53,6 +54,21 @@ def fixture_greenmail() -> Greenmail:
             password="password",
             use_ssl=True,
             verify_certificate=False,
+            # The Java SSL/TLS impplementation that Greenmail is relying on
+            # is sending a "user_cancelled" alert before the "close_notify"
+            # when logging out. This is in violation of the the TLS spec and
+            # OpenSSL (used by Python) will give an error for this, when
+            # using TLS 1.3, starting with OpenSSL 3.2.
+            # This has been previously reported as bug JDK-8282600, but the
+            # fix only omits the "user_cancelled" alert if the client already
+            # closed its end of the TLS connection. This we cannot easily do
+            # as we first want to receive the IMAP server's confirmation of the
+            # logout. It would also require to handle the SSL/TLS connection
+            # on a lower level where we can actually control sending the
+            # "close_notify" alert.
+            #
+            # JDK-8282600: https://bugs.openjdk.org/browse/JDK-8282600
+            tls_maximum_version=ssl.TLSVersion.TLSv1_2,
         ),
         api=NetworkAddress("localhost", 8080),
     )

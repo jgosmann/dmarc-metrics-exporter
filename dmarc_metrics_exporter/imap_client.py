@@ -33,6 +33,7 @@ class ConnectionConfig:
     port: int = 993
     use_ssl: bool = True
     verify_certificate: bool = True
+    tls_maximum_version: ssl.TLSVersion = ssl.TLSVersion.MAXIMUM_SUPPORTED
 
     def create_ssl_context(self) -> Union[Literal[False], ssl.SSLContext]:
         if self.use_ssl:
@@ -40,6 +41,7 @@ class ConnectionConfig:
             if not self.verify_certificate:
                 ssl_context.check_hostname = False
                 ssl_context.verify_mode = ssl.CERT_NONE
+            ssl_context.maximum_version = self.tls_maximum_version
             return ssl_context
         else:
             return False
