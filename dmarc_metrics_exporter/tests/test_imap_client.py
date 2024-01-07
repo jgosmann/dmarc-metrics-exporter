@@ -294,6 +294,7 @@ async def test_timeout_behavior_waiting_for_server_ready():
 
     async def client_connected_cb(reader: StreamReader, writer: StreamWriter):
         await event.wait()
+        writer.close()
 
     server = await start_server(client_connected_cb, host="localhost", port=4143)
 
