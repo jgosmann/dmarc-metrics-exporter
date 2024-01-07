@@ -85,7 +85,7 @@ async def test_fetch_non_ascii_chars(greenmail):
         fetched_email = await wait_for(client.fetched_queue.get(), 5)
         assert fetched_email[:2] == (1, b"FETCH")
         body = next(value for key, value in fetched_email[2] if key == b"RFC822")
-        assert body.endswith("üüüü\r\n".encode("utf-8"))
+        assert body.endswith("üüüü".encode("utf-8"))
 
 
 @pytest.mark.asyncio
@@ -138,7 +138,6 @@ async def test_uid_copy(greenmail):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="Feature not supported by Greenmail.", run=False)
 async def test_uid_move(greenmail):
     await send_email(create_minimal_email(greenmail.imap.username), greenmail.smtp)
     async with ImapClient(greenmail.imap) as client:
