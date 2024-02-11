@@ -15,6 +15,13 @@ Added
 * `dmarc_invalid_reports_total` metric with a count of emails from which no
   DMARC report could be parsed.
 
+Fixed
+^^^^^
+
+* Correctly calculate compliant number and percentage in sample dashboard
+  (use last non null value instead of mean over range).
+  (`#37 <https://github.com/jgosmann/dmarc-metrics-exporter/issues/37>`_)
+
 
 [0.10.1] - 2024-01-07
 ---------------------
