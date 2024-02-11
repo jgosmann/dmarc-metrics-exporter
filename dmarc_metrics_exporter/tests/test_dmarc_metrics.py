@@ -1,10 +1,16 @@
+import pytest
+
 from dmarc_metrics_exporter.dmarc_event import (
     Disposition,
     DmarcEvent,
     DmarcResult,
     Meta,
 )
-from dmarc_metrics_exporter.dmarc_metrics import DmarcMetrics, DmarcMetricsCollection
+from dmarc_metrics_exporter.dmarc_metrics import (
+    DmarcMetrics,
+    DmarcMetricsCollection,
+    InvalidMeta,
+)
 
 
 def test_dmarc_metrics_upate():
@@ -52,3 +58,11 @@ def test_dmarc_metrics_collection_update():
             total_count=1, disposition_counts={Disposition.NONE_VALUE: 1}
         )
     }
+
+
+@pytest.mark.parametrize("from_email", [None, "someone@example.com"])
+def test_dmarc_metrics_inc_invalid(from_email):
+    metrics_collector = DmarcMetricsCollection({})
+    metrics_collector.inc_invalid(InvalidMeta(from_email))
+    metrics_collector.inc_invalid(InvalidMeta(from_email))
+    assert metrics_collector.invalid_reports == {InvalidMeta(from_email): 2}

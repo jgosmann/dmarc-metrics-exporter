@@ -7,7 +7,11 @@ from prometheus_client.samples import Sample
 
 import dmarc_metrics_exporter
 from dmarc_metrics_exporter.dmarc_event import Disposition, Meta
-from dmarc_metrics_exporter.dmarc_metrics import DmarcMetrics, DmarcMetricsCollection
+from dmarc_metrics_exporter.dmarc_metrics import (
+    DmarcMetrics,
+    DmarcMetricsCollection,
+    InvalidMeta,
+)
 from dmarc_metrics_exporter.prometheus_exporter import PrometheusExporter
 
 
@@ -46,7 +50,8 @@ async def test_prometheus_exporter():
                 spf_pass_count=1,
                 spf_aligned_count=1,
             ),
-        }
+        },
+        invalid_reports={InvalidMeta("someone@example.org"): 42},
     )
 
     exporter = PrometheusExporter(metrics)
@@ -84,6 +89,13 @@ async def test_prometheus_exporter():
                 )
                 in samples
             )
+    assert Sample(
+        "dmarc_invalid_reports_total",
+        labels={"from_email": "someone@example.org"},
+        value=42,
+        timestamp=None,
+        exemplar=None,
+    )
 
 
 @pytest.mark.asyncio

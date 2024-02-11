@@ -6,7 +6,7 @@ from dataclasses_serialization.json import JSONSerializer
 
 from dmarc_metrics_exporter.dmarc_event import Disposition, Meta
 
-from .dmarc_metrics import DmarcMetrics, DmarcMetricsCollection
+from .dmarc_metrics import DmarcMetrics, DmarcMetricsCollection, InvalidMeta
 
 
 # false positive, pylint: disable=no-value-for-parameter
@@ -19,7 +19,12 @@ def disposition_serializer(disposition: Disposition) -> str:
 def dmarc_metrics_collection_serializer(
     metrics: DmarcMetricsCollection,
 ) -> List[Tuple[Any, Any]]:
-    return JSONSerializer.serialize([list(item) for item in metrics.items()])
+    return JSONSerializer.serialize(
+        {
+            "metrics": [list(item) for item in metrics.items()],
+            "invalid_reports": [list(item) for item in metrics.invalid_reports.items()],
+        }
+    )
 
 
 @JSONSerializer.register_deserializer(Disposition)
@@ -29,14 +34,21 @@ def disposition_deserializer(_cls, obj: str) -> Disposition:
 
 @JSONSerializer.register_deserializer(DmarcMetricsCollection)
 def dmarc_metrics_collection_deserializer(_cls, obj) -> DmarcMetricsCollection:
+    is_old_format = isinstance(obj, list)
+    if is_old_format:
+        obj = {"metrics": obj}
     return DmarcMetricsCollection(
         dict(
             (
                 JSONSerializer.deserialize(Meta, meta),
                 JSONSerializer.deserialize(DmarcMetrics, metrics),
             )
-            for meta, metrics in obj
-        )
+            for meta, metrics in obj.get("metrics", tuple())
+        ),
+        dict(
+            (JSONSerializer.deserialize(InvalidMeta, meta), count)
+            for meta, count in obj.get("invalid_reports", tuple())
+        ),
     )
 
 

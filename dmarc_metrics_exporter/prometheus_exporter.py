@@ -1,13 +1,13 @@
 import threading
 from contextlib import contextmanager
-from typing import Any, Generator, Tuple
+from typing import Any, Generator, Iterable, Tuple
 
 import uvicorn
 from prometheus_client.core import REGISTRY, CounterMetricFamily, GaugeMetricFamily
 from prometheus_client.exposition import make_asgi_app
 
 import dmarc_metrics_exporter
-from dmarc_metrics_exporter.dmarc_event import Disposition, Meta
+from dmarc_metrics_exporter.dmarc_event import Disposition
 from dmarc_metrics_exporter.dmarc_metrics import DmarcMetricsCollection
 
 
@@ -42,6 +42,7 @@ class Server:
 
 class PrometheusExporter:
     LABELS = ("reporter", "from_domain", "dkim_domain", "spf_domain")
+    INVALID_LABELS = ("from_email",)
 
     def __init__(self, metrics: DmarcMetricsCollection):
         self._metrics_lock = threading.Lock()
@@ -101,10 +102,15 @@ class PrometheusExporter:
             "Total number of messages with raw DKIM pass.",
             labels=self.LABELS,
         )
+        dmarc_invalid_reports_total = CounterMetricFamily(
+            "dmaric_invalid_reports_total",
+            "Total numebr of report emails from which no report could be parsed.",
+            labels=self.INVALID_LABELS,
+        )
 
         with self._metrics_lock:
             for meta, metrics in self._metrics.items():
-                labels = self._meta2labels(meta)
+                labels = self._meta2labels(meta, self.LABELS)
                 dmarc_total.add_metric(labels, metrics.total_count)
                 dmarc_compliant_total.add_metric(labels, metrics.dmarc_compliant_count)
                 dmarc_quarantine_total.add_metric(
@@ -117,6 +123,9 @@ class PrometheusExporter:
                 dmarc_spf_pass_total.add_metric(labels, metrics.spf_pass_count)
                 dmarc_dkim_aligned_total.add_metric(labels, metrics.dkim_aligned_count)
                 dmarc_dkim_pass_total.add_metric(labels, metrics.dkim_pass_count)
+            for meta, count in self._metrics.invalid_reports.items():
+                labels = self._meta2labels(meta, self.INVALID_LABELS)
+                dmarc_invalid_reports_total.add_metric(labels, count)
 
         return (
             build_info,
@@ -128,8 +137,9 @@ class PrometheusExporter:
             dmarc_spf_pass_total,
             dmarc_dkim_aligned_total,
             dmarc_dkim_pass_total,
+            dmarc_invalid_reports_total,
         )
 
-    @classmethod
-    def _meta2labels(cls, meta: Meta) -> Tuple[str, ...]:
-        return tuple(getattr(meta, label) for label in cls.LABELS)
+    @staticmethod
+    def _meta2labels(meta: object, labels: Iterable[str]) -> Tuple[str, ...]:
+        return tuple(getattr(meta, label) for label in labels)

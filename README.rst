@@ -41,6 +41,10 @@ Each of these metrics is subdivided by the following labels:
 * ``dkim_domain``: Domain the DKIM signature is for.
 * ``spf_domain``: Domain used for the SPF check.
 
+In addition, there is a ``dmarc_invalid_reports_total`` metric with a count of
+DMARC report emails from which no report could be parsed. It is subdivided by
+a single ``from_email`` label.
+
 
 Installation
 ------------

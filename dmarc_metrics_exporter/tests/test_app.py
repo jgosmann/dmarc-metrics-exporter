@@ -6,8 +6,11 @@ from unittest.mock import MagicMock
 import pytest
 
 from dmarc_metrics_exporter.app import App
-from dmarc_metrics_exporter.dmarc_metrics import DmarcMetricsCollection
-from dmarc_metrics_exporter.tests.sample_emails import create_email_with_zip_attachment
+from dmarc_metrics_exporter.dmarc_metrics import DmarcMetricsCollection, InvalidMeta
+from dmarc_metrics_exporter.tests.sample_emails import (
+    create_email_with_zip_attachment,
+    create_minimal_email,
+)
 
 from .conftest import try_until_success
 
@@ -91,3 +94,14 @@ async def test_processes_duplicate_report_only_once():
     await app.process_email(email)
 
     assert sum(m.total_count for m in mocks.metrics.values()) == 1
+
+
+@pytest.mark.asyncio
+async def test_counts_failed_extractions():
+    mocks = AppMocks()
+    app = App(autosave_interval_seconds=0.5, **mocks.dependencies.as_flat_dict())
+    email = create_minimal_email()
+
+    await app.process_email(email)
+
+    assert mocks.metrics.invalid_reports == {InvalidMeta(email["From"]): 1}

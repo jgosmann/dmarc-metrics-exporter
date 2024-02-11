@@ -13,7 +13,7 @@ from dmarc_metrics_exporter.deserialization import (
     convert_to_events,
     get_aggregate_report_from_email,
 )
-from dmarc_metrics_exporter.dmarc_metrics import DmarcMetricsCollection
+from dmarc_metrics_exporter.dmarc_metrics import DmarcMetricsCollection, InvalidMeta
 from dmarc_metrics_exporter.expiring_set import ExpiringSet
 from dmarc_metrics_exporter.imap_queue import ConnectionConfig, ImapQueue, QueueFolders
 from dmarc_metrics_exporter.metrics_persister import MetricsPersister
@@ -142,4 +142,6 @@ class App:
                     with self.exporter.get_metrics() as metrics:
                         metrics.update(event)
         except ReportExtractionError as err:
+            with self.exporter.get_metrics() as metrics:
+                metrics.inc_invalid(InvalidMeta(err.msg.get("from", None)))
             logging.warning(str(err))

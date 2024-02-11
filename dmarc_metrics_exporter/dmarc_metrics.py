@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Dict, Iterator
+from typing import Dict, Iterator, Optional
 
 from dmarc_metrics_exporter.dmarc_event import (
     Disposition,
@@ -37,9 +37,15 @@ class DmarcMetrics:
             self.spf_aligned_count += count
 
 
+@dataclass(frozen=True)
+class InvalidMeta:
+    from_email: Optional[str]
+
+
 @dataclass
 class DmarcMetricsCollection(Mapping):
     metrics: Dict[Meta, DmarcMetrics] = field(default_factory=dict)
+    invalid_reports: Dict[InvalidMeta, int] = field(default_factory=dict)
 
     def __getitem__(self, key: Meta) -> DmarcMetrics:
         return self.metrics[key]
@@ -54,3 +60,8 @@ class DmarcMetricsCollection(Mapping):
         if event.meta not in self.metrics:
             self.metrics[event.meta] = DmarcMetrics()
         self.metrics[event.meta].update(event.count, event.result)
+
+    def inc_invalid(self, meta: InvalidMeta):
+        if meta not in self.invalid_reports:
+            self.invalid_reports[meta] = 0
+        self.invalid_reports[meta] += 1
