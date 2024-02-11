@@ -1,7 +1,6 @@
 import asyncio
 import contextlib
 import itertools
-import logging
 import ssl
 import time
 from asyncio import (
@@ -18,12 +17,13 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Coroutine, Dict, FrozenSet, Literal, Optional, Union
 
+import structlog
 from bite import parse_incremental
 from bite.parsers import ParsedNode
 
 from .imap_parser import response as response_grammar
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 @dataclass
@@ -79,7 +79,13 @@ class _ImapTag:
         return self._response_received.is_set()
 
     def set_response(self, state: bytes, text: bytes):
-        logger.debug("IMAP command '%s' completed with '%s %s'", self.name, state, text)
+        logger.debug(
+            "IMAP command completed with ",
+            command=self.name,
+            state=state,
+            state_description=text,
+            logger=ImapClient.__name__,
+        )
         self.state = state
         self.text = text
         self._response_received.set()
@@ -148,6 +154,7 @@ class ImapClient:
         self._writer = None
         self._tag_gen = (f"a{i}".encode("ascii") for i in itertools.count())
         self._tag_completions = {}
+        self._log = logger.bind(logger=self.__class__.__name__)
 
     async def __aenter__(self):
         reader, self._writer = await open_connection(
@@ -159,7 +166,7 @@ class ImapClient:
 
         try:
             await wait_for(self._server_ready.wait(), self.timeout_seconds)
-            logger.debug("IMAP server ready.")
+            await self._log.adebug("IMAP server ready.")
             await self._capability()
             await self._login(self.connection.username, self.connection.password)
         except:
@@ -169,22 +176,26 @@ class ImapClient:
 
     async def __aexit__(self, exc_type, exc, traceback):
         if not self._writer.is_closing():
-            logger.debug("Logging out (timeout %s seconds)", self.timeout_seconds)
+            await self._log.adebug("Logging out.", timeout=self.timeout_seconds)
             with contextlib.suppress(asyncio.TimeoutError):
                 await wait_for(self._logout(), self.timeout_seconds)
             self._writer.close()
-            logger.debug("Waiting for writer to be closed.")
-            await self._writer.wait_closed()
-        logger.debug("Processing remaining responses after connection close.")
-        await self._process_responses_task
+            await asyncio.gather(
+                self._log.adebug("Waiting for writer to be closed."),
+                self._writer.wait_closed(),
+            )
+        await asyncio.gather(
+            self._log.adebug("Processing remaining responses after connection close."),
+            self._process_responses_task,
+        )
         self._server_ready.clear()
-        logger.debug("Connection closed.")
+        await self._log.adebug("Connection closed.")
 
     async def _process_responses(self, reader: StreamReader):
         try:
             async for parse_tree in parse_incremental(response_grammar, reader):
                 response = parse_tree.values
-                logger.debug("IMAP response: %s", response)
+                await self._log.adebug("IMAP response.", response=response)
 
                 self._last_response = time.time()
 
@@ -195,9 +206,9 @@ class ImapClient:
                 else:
                     tag_name, state, text = response[0:3]
                     self._tag_completions[tag_name].set_response(state, text)
-            logger.debug("End of response stream.")
+            await self._log.adebug("End of response stream.")
         except Exception:  # pylint: disable=broad-except
-            logger.exception("Error while processing server responses.")
+            await self._log.aexception("Error while processing server responses.")
             for tag_completion in self._tag_completions.values():
                 if not tag_completion.has_response():
                     tag_completion.set_response(b"NO", b"")
@@ -206,7 +217,9 @@ class ImapClient:
         if response[1] == b"OK":
             self._server_ready.set()
         elif response[1] == b"CAPABILITY":
-            logger.debug("IMAP server reports capabilities: %s", response[2])
+            await self._log.adebug(
+                "IMAP server reported capabilities.", capabilities=response[2]
+            )
             self._capabilities = frozenset(
                 c.strip().upper() for c in response[2].decode("utf-8").split(" ")
             )
@@ -218,7 +231,9 @@ class ImapClient:
         elif len(response) >= 3 and response[2] == b"FETCH":
             await self.fetched_queue.put(response[1:])
         else:
-            logger.debug("Ignored untagged IMAP response: %s", response[1])
+            await self._log.adebug(
+                "Ignored untagged IMAP response.", response=response[1]
+            )
 
     async def _command(
         self, name: str, write_command: Callable[[_ImapCommandWriter], Coroutine]

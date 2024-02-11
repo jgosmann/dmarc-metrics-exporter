@@ -118,7 +118,81 @@ The following configuration options are available:
   Directory to persist data in that has to persisted between restarts.
 * ``poll_interval_seconds`` (number, default ``60``): How often to poll the IMAP server in seconds.
 * ``deduplication_max_seconds`` (number, default ``604800`` which is 7 days): How long individual report IDs will be remembered to avoid counting double delivered reports twice.
-* ``logging`` (object, default ``{ "version": 1, "disable_existing_loggers": false }``): Logging configuration. `See logging.config documentation. <https://docs.python.org/3/library/logging.config.html#configuration-dictionary-schema>`_
+* ``logging`` (object, default ``{}``): Logging configuration, see the "Logging configuration" section below.
+
+Logging configuration
+^^^^^^^^^^^^^^^^^^^^^
+
+When providing a custom logging configuration, it must follow the dictionary
+schema (version 1) described in the `logging.config documentation <https://docs.python.org/3/library/logging.config.html#configuration-dictionary-schema>`_.
+In general, a provided top-level key will replace the default configuration,
+but there are some exceptions. The following keys are always fixed:
+
+* ``version`` will always be ``1``.
+* ``incremental`` will always be ``false``.
+* ``formatters`` is fixed and provides the following formatters:
+
+  * ``plain`` renders human-readable log messages without colors.
+  * ``colored`` renders human-readable log messages with colors.
+  * ``json`` renders structured JSON log messages.
+
+In addition, the ``root`` key has some special handling. If it is overridden,
+but not ``handlers`` key is provided, ``handlers: ['default']`` will be inserted
+automatically. Also, the ``level`` key will be set to ``'DEBUG'`` if the
+application is started with the ``--debug`` flag.
+
+Configuring log level
+"""""""""""""""""""""
+
+To change the log level globally:
+
+.. code-block:: json
+
+    {
+        "logging": {
+            "root": {
+                "level": "WARNING"
+            }
+        }
+    }
+
+Configuring logging format
+""""""""""""""""""""""""""
+
+To change the logging format:
+
+.. code-block:: json
+
+    {
+        "logging": {
+            "handlers": {
+                "default": {
+                    "class": "logging.StreamHandler",
+                    "formatter": "json"
+                }
+            }
+        }
+    }
+
+Valid formats are ``plain``, ``colored``, and ``json``.
+
+Disabling Uvicorn access logs
+"""""""""""""""""""""""""""""
+
+To disable the Uvicorn access logs:
+
+.. code-block:: json
+
+    {
+        "logging": {
+            "loggers": {
+                "uvicorn.access": {
+                    "propagate": false
+                }
+            }
+        }
+    }
+
 
 Usage
 -----

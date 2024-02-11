@@ -6,6 +6,27 @@ All notable changes to this project will be documented in this file.
 The format is based on `Keep a Changelog <https://keepachangelog.com/en/1.0.0/>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
 
+[1.0.0] - unreleased
+--------------------
+
+Added
+^^^^^
+
+* Support for structured JSON logging.
+  (`#35 <https://github.com/jgosmann/dmarc-metrics-exporter/issues/35>`_)
+
+Changed
+^^^^^^^
+
+* Logs are colored by default.
+* It is no longer possible to override the following keys in the logging
+  configuration: ``version``, ``incremental``, ``formatters``.
+* ``root.handlers`` will be set to ``['default']`` in the logging configuration
+  if not provided explicitly.
+* The ``--debug`` argument will always take precedence for the root logger, no
+  matter what might be configured in the logging configuration.
+
+
 [0.11.0] - 2024-02-11
 ---------------------
 
