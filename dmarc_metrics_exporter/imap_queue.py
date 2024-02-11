@@ -1,7 +1,6 @@
 import asyncio
 import contextlib
 import email.policy
-import logging
 from asyncio.tasks import Task
 from dataclasses import astuple, dataclass
 from email.message import EmailMessage
@@ -9,9 +8,11 @@ from email.parser import BytesParser
 from typing import Any, Awaitable, Callable, Iterable, Optional, Tuple, cast
 from urllib.parse import ParseResult
 
+import structlog
+
 from dmarc_metrics_exporter.imap_client import ConnectionConfig, ImapClient
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 @dataclass
@@ -43,35 +44,37 @@ class ImapQueue:
         self._poll_task = asyncio.create_task(self._poll_imap(handler))
 
     async def _poll_imap(self, handler: Callable[[Any], Awaitable[None]]):
+        log = logger.bind(logger=self.__class__.__name__)
         try:
             while self._stop is not None and not self._stop.is_set():
-                logger.debug("Polling IMAP ...")
+                await log.adebug("Polling IMAP ...")
                 try:
                     await self._process_new_messages(handler)
                 except (  # pylint: disable=broad-except
                     asyncio.TimeoutError,
                     Exception,
                 ):
-                    logger.exception("Error during message processing.")
-                logger.debug(
-                    "Going to sleep for %s seconds until next poll.",
-                    self.poll_interval_seconds,
+                    await log.aexception("Error during message processing.")
+                await log.adebug(
+                    "Going to sleep for until next poll.",
+                    poll_interval_seconds=self.poll_interval_seconds,
                 )
                 with contextlib.suppress(asyncio.TimeoutError):
                     await asyncio.wait_for(
                         self._stop.wait(), self.poll_interval_seconds
                     )
         except Exception:  # pylint: disable=broad-except
-            logger.exception("Error in IMAP queue polling function.")
+            await log.aexception("Error in IMAP queue polling function.")
             return
 
     async def _process_new_messages(self, handler: Callable[[Any], Awaitable[None]]):
+        log = logger.bind()
         async with ImapClient(self.connection, self.timeout_seconds) as client:
             for folder in astuple(self.folders):
                 await client.create_if_not_exists(folder)
 
             msg_count = await client.select(self.folders.inbox)
-            logger.debug("%s messages to fetch.", msg_count)
+            await log.adebug("Messages to fetch.", msg_count=msg_count)
             if msg_count > 0:
                 fetch_task = asyncio.create_task(
                     client.fetch(
@@ -82,27 +85,27 @@ class ImapQueue:
                     fetched = await client.fetched_queue.get()
                     uid, msg = self._extract_uid_and_msg(fetched)
                     if uid is None:
-                        logger.warning(
-                            "Failed to extract UID for message %s", fetched[0]
-                        )
+                        await log.awarning("Failed to extract UID.", message=fetched[0])
                     elif msg is None:
-                        logger.warning(
-                            "Failed to extract RFC822 message for message %s (UID %s)",
-                            fetched[0],
-                            uid,
+                        await log.awarning(
+                            "Failed to extract RFC822 message for message.",
+                            message=fetched[0],
+                            uid=uid,
                         )
                     else:
                         try:
-                            logger.debug("Processing UID %s", uid)
-                            await handler(msg)
+                            await asyncio.gather(
+                                log.adebug("Processing message.", uid=uid),
+                                handler(msg),
+                            )
                         except Exception:  # pylint: disable=broad-except
-                            logger.exception(
+                            await log.aexception(
                                 "Handler for message in IMAP queue failed."
                             )
                             await client.uid_move_graceful(uid, self.folders.error)
                         else:
                             await client.uid_move_graceful(uid, self.folders.done)
-                logger.debug("Processed all messages.")
+                await log.adebug("Processed all messages.")
                 await fetch_task
 
     @classmethod

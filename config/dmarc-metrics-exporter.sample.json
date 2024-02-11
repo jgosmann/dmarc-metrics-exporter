@@ -18,10 +18,15 @@
     "poll_interval_seconds": 60,
     "deduplication_max_seconds": 604800,
     "logging": {
-        "version": 1,
+        "handlers": {
+            "default": {
+                "class": "logging.StreamHandler",
+                "formatter": "json"
+            }
+        },
         "loggers": {
-            "uvicorn": {
-                "level": "INFO"
+            "uvicorn.access": {
+                "propagate": false
             }
         }
     }

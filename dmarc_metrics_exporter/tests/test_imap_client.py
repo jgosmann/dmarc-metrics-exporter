@@ -1,6 +1,5 @@
 import asyncio
 import io
-import logging
 import re
 from asyncio import (
     Condition,
@@ -15,6 +14,7 @@ from asyncio import (
 from typing import Callable, Coroutine, Dict, List, Optional
 
 import pytest
+import structlog
 
 from dmarc_metrics_exporter.imap_client import (
     ConnectionConfig,
@@ -24,7 +24,7 @@ from dmarc_metrics_exporter.imap_client import (
 from dmarc_metrics_exporter.tests.conftest import send_email, try_until_success
 from dmarc_metrics_exporter.tests.sample_emails import create_minimal_email
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 class MockReader:
@@ -248,10 +248,11 @@ async def test_executes_different_commands_in_parallel():
     continue_store = Event()
     num_commands_received_condition = Condition()
     num_commands_received = 0
+    log = logger.bind(logger="test_executes_different_commands_in_parallel")
 
     async def fetch_handler(_: StreamWriter):
         nonlocal num_commands_received
-        logger.debug("fetch handle")
+        await log.adebug("fetch handle")
         async with num_commands_received_condition:
             num_commands_received += 1
             num_commands_received_condition.notify_all()
@@ -259,7 +260,7 @@ async def test_executes_different_commands_in_parallel():
 
     async def store_handler(_: StreamWriter):
         nonlocal num_commands_received
-        logger.debug("store handle")
+        await log.adebug("store handle")
         async with num_commands_received_condition:
             num_commands_received += 1
             num_commands_received_condition.notify_all()
@@ -410,6 +411,7 @@ class MockImapServer:
         self._server = None
         self._write_lock = asyncio.Lock()
         self._tasks: List[asyncio.Task] = []
+        self._log = logger.bind(logger=self.__class__.__name__)
 
     @property
     def connection_config(self) -> ConnectionConfig:
@@ -433,7 +435,7 @@ class MockImapServer:
 
         while not reader.at_eof():
             line = await reader.readline()
-            logger.debug("MockImapServer received: %s", line)
+            await self._log.adebug("MockImapServer received line.", line=line)
             parsed = re.match(
                 rb"^(?P<tag>\w+)\s+(?P<command>\w+)(?P<remainder>.*)$", line
             )

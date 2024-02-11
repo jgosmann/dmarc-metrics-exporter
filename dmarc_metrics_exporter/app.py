@@ -1,12 +1,12 @@
 import argparse
 import asyncio
 import json
-import logging
-import logging.config
 from asyncio import CancelledError
 from email.message import EmailMessage
 from pathlib import Path
 from typing import Any, Callable, Optional, Sequence, Tuple
+
+import structlog
 
 from dmarc_metrics_exporter.deserialization import (
     ReportExtractionError,
@@ -16,8 +16,11 @@ from dmarc_metrics_exporter.deserialization import (
 from dmarc_metrics_exporter.dmarc_metrics import DmarcMetricsCollection, InvalidMeta
 from dmarc_metrics_exporter.expiring_set import ExpiringSet
 from dmarc_metrics_exporter.imap_queue import ConnectionConfig, ImapQueue, QueueFolders
+from dmarc_metrics_exporter.logging import configure_logging
 from dmarc_metrics_exporter.metrics_persister import MetricsPersister
 from dmarc_metrics_exporter.prometheus_exporter import PrometheusExporter
+
+logger = structlog.get_logger()
 
 
 def main(argv: Sequence[str]):
@@ -43,16 +46,7 @@ def main(argv: Sequence[str]):
     configuration = json.load(args.configuration)
     args.configuration.close()
 
-    logging.basicConfig(level=logging.DEBUG if args.debug else logging.INFO)
-    logging.config.dictConfig(
-        configuration.get(
-            "logging",
-            {
-                "version": 1,
-                "disable_existing_loggers": False,
-            },
-        )
-    )
+    configure_logging(configuration.get("logging", {}), debug=args.debug)
 
     storage_path = Path(
         configuration.get("storage_path", "/var/lib/dmarc-metrics-exporter")
@@ -144,4 +138,4 @@ class App:
         except ReportExtractionError as err:
             with self.exporter.get_metrics() as metrics:
                 metrics.inc_invalid(InvalidMeta(err.msg.get("from", None)))
-            logging.warning(str(err))
+            logger.warning(str(err), exc_info=err, msg=err.msg)
