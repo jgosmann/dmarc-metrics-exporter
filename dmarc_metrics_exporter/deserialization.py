@@ -1,6 +1,5 @@
 import gzip
 import io
-import logging
 from email.contentmanager import raw_data_manager
 from email.message import EmailMessage
 from typing import Callable, Generator, Mapping, Optional
@@ -47,6 +46,16 @@ content_type_handlers: Mapping[str, Callable[..., Generator[str, None, None]]] =
 }
 
 
+class ReportExtractionError(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        from_email = self.msg.get("from", "<from missing>")
+        subject = self.msg.get("subject", "<no subject>")
+        return f"Failed to extract report from email by {from_email} with subject '{subject}'."
+
+
 def get_aggregate_report_from_email(
     msg: EmailMessage,
 ) -> Generator[Feedback, None, None]:
@@ -62,11 +71,7 @@ def get_aggregate_report_from_email(
             for payload in handler(content):
                 yield parser.from_string(payload, Feedback)
     if not has_found_a_report:
-        logging.warning(
-            "Failed to extract report from email by %s with subject '%s'.",
-            msg.get("from", "<from missing>"),
-            msg.get("subject", "<no subject>"),
-        )
+        raise ReportExtractionError(msg)
 
 
 def _map_disposition(disposition: Optional[DispositionType]) -> Disposition:

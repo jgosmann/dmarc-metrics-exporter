@@ -1,4 +1,7 @@
+import pytest
+
 from dmarc_metrics_exporter.deserialization import (
+    ReportExtractionError,
     convert_to_events,
     get_aggregate_report_from_email,
 )
@@ -12,6 +15,7 @@ from dmarc_metrics_exporter.model.tests.sample_data import SAMPLE_DATACLASS
 from dmarc_metrics_exporter.tests.sample_emails import (
     create_email_with_xml_attachment,
     create_email_with_zip_attachment,
+    create_minimal_email,
 )
 
 
@@ -23,6 +27,13 @@ def test_extracts_plain_xml_from_email():
 def test_extracts_zipped_xml_from_email():
     msg = create_email_with_zip_attachment()
     assert list(get_aggregate_report_from_email(msg)) == [SAMPLE_DATACLASS]
+
+
+def test_returns_err_if_no_report_can_be_extracted():
+    msg = create_minimal_email()
+    with pytest.raises(ReportExtractionError) as err:
+        list(get_aggregate_report_from_email(msg))
+    assert err.value.msg is msg
 
 
 def test_convert_to_events():

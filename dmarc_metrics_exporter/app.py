@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional, Sequence, Tuple
 
 from dmarc_metrics_exporter.deserialization import (
+    ReportExtractionError,
     convert_to_events,
     get_aggregate_report_from_email,
 )
@@ -128,14 +129,17 @@ class App:
             self._seen_reports.persist(self.seen_reports_db)
 
     async def process_email(self, msg: EmailMessage):
-        for report in get_aggregate_report_from_email(msg):
-            org_name = report.report_metadata and report.report_metadata.org_name
-            report_id = report.report_metadata and report.report_metadata.report_id
-            if org_name and report_id:
-                if (org_name, report_id) in self._seen_reports:
-                    continue
-                self._seen_reports.add((org_name, report_id))
+        try:
+            for report in get_aggregate_report_from_email(msg):
+                org_name = report.report_metadata and report.report_metadata.org_name
+                report_id = report.report_metadata and report.report_metadata.report_id
+                if org_name and report_id:
+                    if (org_name, report_id) in self._seen_reports:
+                        continue
+                    self._seen_reports.add((org_name, report_id))
 
-            for event in convert_to_events(report):
-                with self.exporter.get_metrics() as metrics:
-                    metrics.update(event)
+                for event in convert_to_events(report):
+                    with self.exporter.get_metrics() as metrics:
+                        metrics.update(event)
+        except ReportExtractionError as err:
+            logging.warning(str(err))
