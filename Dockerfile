@@ -1,4 +1,4 @@
-FROM python:3.11-slim AS builder
+FROM --platform=linux/amd64 python:3.11-slim AS builder
 ARG version
 
 # install python package in venv
