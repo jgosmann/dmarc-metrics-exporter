@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 The format is based on `Keep a Changelog <https://keepachangelog.com/en/1.0.0/>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
 
-[1.0.0] - unreleased
+[1.0.0] - 2024-02-17
 --------------------
 
 Added
@@ -14,6 +14,10 @@ Added
 
 * Support for structured JSON logging.
   (`#35 <https://github.com/jgosmann/dmarc-metrics-exporter/issues/35>`_)
+* Docker images will be published for ``linux/amd64`` and ``linux/arm6``
+  platforms.
+  (`#42 <https://github.com/jgosmann/dmarc-metrics-exporter/pull/42>`_)
+* Latest stable release will be tagged with ``latest`` tag on Docker Hub.
 
 Changed
 ^^^^^^^
