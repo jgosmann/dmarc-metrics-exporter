@@ -121,11 +121,18 @@ jobs:
         with:
           args: --standalone --wrap none -f rst -t gfm --output=release-body.md release-body.rst
 
+      - name: Check if prerelease
+        id: check-prerelease
+        uses: ./.github/actions/check-prerelease
+        with:
+          version: ${{ steps.version.outputs.version }}
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v1
         with:
           body_path: release-body.md
           tag_name: v${{ steps.version.outputs.version }}
+          prerelease: ${{ steps.check-prerelease.prerelease }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

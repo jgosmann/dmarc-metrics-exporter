@@ -1,0 +1,21 @@
+name: Checks whether a version is a prerelease
+description: Checks whether a version is prerelease according to PEP440.
+inputs:
+  version:
+    description: Version number to check.
+    required: true
+outputs:
+  prerelease:
+    description: Whether the version number is a prerelease.
+    value: ${{ steps.check-prerelease.outputs.PRERELEASE }}
+runs:
+  using: composite
+  steps:
+    - name: Install packaging
+      run: pip install packaging
+      shell: bash
+
+    - name: Check if prerelease
+      id: check-prerelease
+      run: ./.github/actions/check_prerelease.py ${{ inputs.version }} >> "$GITHUB_OUTPUT"
+      shell: bash
