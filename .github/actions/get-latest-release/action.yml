@@ -1,0 +1,21 @@
+name: Get latest release
+description: Gets the latest (non-prerelease) version of a PyPI package.
+inputs:
+  package:
+    description: Name of the the package.
+    required: true
+outputs:
+  latest_version:
+    description: Latest version of the package.
+    value: ${{ steps.check-prerelease.outputs.VERSION }}
+runs:
+  using: composite
+  steps:
+    - name: Install packaging
+      run: pip install packaging
+      shell: bash
+
+    - name: Get latest version
+      id: get-latest
+      run: ./.github/actions/get_latest.py ${{ inputs.package }} >> "$GITHUB_OUTPUT"
+      shell: bash
