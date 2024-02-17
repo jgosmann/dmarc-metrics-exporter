@@ -65,6 +65,32 @@ jobs:
         with:
           images: ${{ env.IMAGE_NAME }}
 
+      - name: Check if prerelease
+        id: check-prerelease
+        uses: ./.github/actions/check-prerelease
+        with:
+          version: ${{ steps.version.outputs.version }}
+
+      - name: Get latest release
+        id: latest-version
+        uses: ./.github/actions/get-latest-release
+        with:
+          package: dmarc-metrics-exporter
+
+      - name: Set tags
+        id: set-tags
+        shell: bash
+        run: |
+          {
+            echo 'TAGS<<EOF'
+            echo ${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+            [ ${{ steps.version.outputs.version }} = ${{ steps.latest-version.outputs.latest_version }} ] \
+              && [ ${{ steps.check-prerelease }} != true ] \
+              && echo ${{ env.IMAGE_NAME }}:latest
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
@@ -72,7 +98,7 @@ jobs:
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+          tags: ${{ steps.set-tags.outputs.TAGS }}
           platforms: linux/amd64,linux/arm64
           labels: ${{ steps.meta.outputs.labels }}
           build-args: "version=${{ steps.version.outputs.version }}"
