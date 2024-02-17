@@ -13,6 +13,8 @@ imap_verify_certificate: yes
 poll_interval_seconds: 60
 deduplication_max_seconds: 604800
 
+logging_config: {}
+
 folder_inbox: "INBOX"
 folder_done: "Archive"
 folder_error: "Invalid"
