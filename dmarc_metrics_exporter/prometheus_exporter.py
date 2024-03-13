@@ -56,7 +56,7 @@ class PrometheusExporter:
         with self._metrics_lock:
             yield self._metrics
 
-    def collect(self) -> Tuple[Any, ...]:
+    def collect(self, empty_metrics=True) -> Tuple[Any, ...]:
         build_info = GaugeMetricFamily(
             "dmarc_metrics_exporter_build_info",
             "A metric with a constant '1' value labeled by version of the dmarc-metrics-exporter.",
@@ -113,12 +113,12 @@ class PrometheusExporter:
                 labels = self._meta2labels(meta, self.LABELS)
                 dmarc_total.add_metric(labels, metrics.total_count)
                 dmarc_compliant_total.add_metric(labels, metrics.dmarc_compliant_count)
-                dmarc_quarantine_total.add_metric(
-                    labels, metrics.disposition_counts.get(Disposition.QUARANTINE, 0)
-                )
-                dmarc_reject_total.add_metric(
-                    labels, metrics.disposition_counts.get(Disposition.REJECT, 0)
-                )
+                quarantine_count = metrics.disposition_counts.get(Disposition.QUARANTINE, 0)
+                if quarantine_count > 0 or empty_metrics is True:
+                    dmarc_quarantine_total.add_metric(labels, quarantine_count)
+                reject_count = metrics.disposition_counts.get(Disposition.REJECT, 0)
+                if quarantine_count > 0 or empty_metrics is True:
+                    dmarc_reject_total.add_metric(labels, reject_count)
                 dmarc_spf_aligned_total.add_metric(labels, metrics.spf_aligned_count)
                 dmarc_spf_pass_total.add_metric(labels, metrics.spf_pass_count)
                 dmarc_dkim_aligned_total.add_metric(labels, metrics.dkim_aligned_count)
@@ -131,8 +131,8 @@ class PrometheusExporter:
             build_info,
             dmarc_total,
             dmarc_compliant_total,
-            dmarc_quarantine_total,
-            dmarc_reject_total,
+            dmarc_quarantine_total if quarantine_count > 0 or empty_metrics is True else None,
+            dmarc_reject_total if reject_count > 0 or empty_metrics is True else None,
             dmarc_spf_aligned_total,
             dmarc_spf_pass_total,
             dmarc_dkim_aligned_total,
