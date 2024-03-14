@@ -66,6 +66,7 @@ def main(argv: Sequence[str]):
             "deduplication_max_seconds", 7 * 24 * 60 * 60
         ),
         seen_reports_db=storage_path / "seen-reports.db",
+        empty_metrics=configuration.get("empty_metrics", True)
     )
 
     asyncio.run(app.run())
@@ -85,10 +86,12 @@ class App:
         exporter_cls: Callable[[DmarcMetricsCollection], Any] = PrometheusExporter,
         autosave_interval_seconds: float = 60,
         deduplication_max_seconds: float = 7 * 24 * 60 * 60,
-        seen_reports_db: Optional[Path] = None
+        seen_reports_db: Optional[Path] = None,
+        empty_metrics: bool = True
     ):
         self.prometheus_addr = prometheus_addr
-        self.exporter = exporter_cls(DmarcMetricsCollection())
+        self.empty_metrics = empty_metrics
+        self.exporter = exporter_cls(DmarcMetricsCollection(), self.empty_metrics)
         self.imap_queue = imap_queue
         self.exporter_cls = exporter_cls
         self.metrics_persister = metrics_persister
@@ -102,7 +105,7 @@ class App:
             self._seen_reports = ExpiringSet(deduplication_max_seconds)
 
     async def run(self):
-        self.exporter = self.exporter_cls(self.metrics_persister.load())
+        self.exporter = self.exporter_cls(self.metrics_persister.load(), self.empty_metrics)
         try:
             self.imap_queue.consume(self.process_email)
             async with self.exporter.start_server(*self.prometheus_addr):
