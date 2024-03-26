@@ -29,5 +29,6 @@
                 "propagate": false
             }
         }
-    }
+    },
+    "empty_metrics": true
 }
