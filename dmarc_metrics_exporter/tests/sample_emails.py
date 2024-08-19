@@ -3,6 +3,7 @@ from email.message import EmailMessage
 from email.mime.application import MIMEApplication
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
+from gzip import GzipFile
 from zipfile import ZipFile
 
 from dmarc_metrics_exporter.model.tests.sample_data import create_sample_xml
@@ -43,6 +44,21 @@ def create_zip_report(*, report_id="12598866915817748661") -> MIMEApplication:
         filename="reporter.com!localhost!1601510400!1601596799.zip",
     )
     return zip_mime
+
+
+def create_gzip_report(*, report_id="12598866915817748661") -> MIMEApplication:
+    compressed = io.BytesIO()
+    filename = "reporter.com!localhost!1601510400!1601596799.xml.gz"
+    with GzipFile(filename, mode="wb", fileobj=compressed) as gzip_file:
+        gzip_file.write(create_sample_xml(report_id=report_id).encode("utf-8"))
+
+    gzip_mime = MIMEApplication(compressed.getvalue(), "gzip")
+    gzip_mime.add_header(
+        "Content-Disposition",
+        "attachment",
+        filename="reporter.com!localhost!1601510400!1601596799.xml.gz",
+    )
+    return gzip_mime
 
 
 def create_email_with_attachment(
