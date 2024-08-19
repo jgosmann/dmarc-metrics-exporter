@@ -29,7 +29,9 @@ def create_xml_report(*, report_id="12598866915817748661") -> MIMEText:
     return xml
 
 
-def create_zip_report(*, report_id="12598866915817748661") -> MIMEApplication:
+def create_zip_report(
+    *, report_id="12598866915817748661", subtype="zip"
+) -> MIMEApplication:
     compressed = io.BytesIO()
     with ZipFile(compressed, "w") as zip_file:
         zip_file.writestr(
@@ -37,7 +39,7 @@ def create_zip_report(*, report_id="12598866915817748661") -> MIMEApplication:
             create_sample_xml(report_id=report_id),
         )
 
-    zip_mime = MIMEApplication(compressed.getvalue(), "zip")
+    zip_mime = MIMEApplication(compressed.getvalue(), subtype)
     zip_mime.add_header(
         "Content-Disposition",
         "attachment",
@@ -46,13 +48,15 @@ def create_zip_report(*, report_id="12598866915817748661") -> MIMEApplication:
     return zip_mime
 
 
-def create_gzip_report(*, report_id="12598866915817748661") -> MIMEApplication:
+def create_gzip_report(
+    *, report_id="12598866915817748661", subtype="gzip"
+) -> MIMEApplication:
     compressed = io.BytesIO()
     filename = "reporter.com!localhost!1601510400!1601596799.xml.gz"
     with GzipFile(filename, mode="wb", fileobj=compressed) as gzip_file:
         gzip_file.write(create_sample_xml(report_id=report_id).encode("utf-8"))
 
-    gzip_mime = MIMEApplication(compressed.getvalue(), "gzip")
+    gzip_mime = MIMEApplication(compressed.getvalue(), subtype)
     gzip_mime.add_header(
         "Content-Disposition",
         "attachment",

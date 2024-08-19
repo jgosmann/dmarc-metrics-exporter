@@ -36,6 +36,16 @@ def test_extracts_gzipped_xml_from_email():
     assert list(get_aggregate_report_from_email(msg)) == [SAMPLE_DATACLASS]
 
 
+def test_extracts_zipped_xml_from_email_with_octet_stream_content_type():
+    msg = create_email_with_attachment(create_zip_report(subtype="octet-stream"))
+    assert list(get_aggregate_report_from_email(msg)) == [SAMPLE_DATACLASS]
+
+
+def test_extracts_gzipped_xml_from_email_with_octet_stream_content_type():
+    msg = create_email_with_attachment(create_gzip_report(subtype="octet-stream"))
+    assert list(get_aggregate_report_from_email(msg)) == [SAMPLE_DATACLASS]
+
+
 def test_returns_err_if_no_report_can_be_extracted():
     msg = create_minimal_email()
     with pytest.raises(ReportExtractionError) as err:

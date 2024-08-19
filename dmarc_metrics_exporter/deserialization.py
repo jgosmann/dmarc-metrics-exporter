@@ -1,5 +1,6 @@
 import gzip
 import io
+import os.path
 from email.contentmanager import raw_data_manager
 from email.message import EmailMessage
 from typing import Callable, Generator, Mapping, Optional
@@ -24,25 +25,40 @@ from dmarc_metrics_exporter.model.dmarc_aggregate_report import (
 )
 
 
-def handle_application_gzip(gzip_bytes: bytes) -> Generator[str, None, None]:
+def handle_octet_stream(filename: str, buffer: bytes) -> Generator[str, None, None]:
+    _, file_extension = os.path.splitext(filename)
+    return file_extension_handlers[file_extension](filename, buffer)
+
+
+def handle_application_gzip(
+    _filename: str, gzip_bytes: bytes
+) -> Generator[str, None, None]:
     yield gzip.decompress(gzip_bytes).decode("utf-8")
 
 
-def handle_application_zip(zip_bytes: bytes) -> Generator[str, None, None]:
+def handle_application_zip(
+    _filename: str, zip_bytes: bytes
+) -> Generator[str, None, None]:
     with ZipFile(io.BytesIO(zip_bytes), "r") as zip_file:
         for name in zip_file.namelist():
             with zip_file.open(name, "r") as f:
                 yield f.read().decode("utf-8")
 
 
-def handle_text_xml(content: str) -> Generator[str, None, None]:
+def handle_text_xml(_filename: str, content: str) -> Generator[str, None, None]:
     yield content
 
 
 content_type_handlers: Mapping[str, Callable[..., Generator[str, None, None]]] = {
+    "application/octet-stream": handle_octet_stream,
     "application/gzip": handle_application_gzip,
     "application/zip": handle_application_zip,
     "text/xml": handle_text_xml,
+}
+
+file_extension_handlers: Mapping[str, Callable[..., Generator[str, None, None]]] = {
+    ".gz": handle_application_gzip,
+    ".zip": handle_application_zip,
 }
 
 
@@ -68,7 +84,7 @@ def get_aggregate_report_from_email(
             handler = content_type_handlers[part.get_content_type()]
             content = raw_data_manager.get_content(part)
             has_found_a_report = True
-            for payload in handler(content):
+            for payload in handler(part.get_filename(), content):
                 yield parser.from_string(payload, Feedback)
     if not has_found_a_report:
         raise ReportExtractionError(msg)
