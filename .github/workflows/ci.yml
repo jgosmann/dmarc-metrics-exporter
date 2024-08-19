@@ -71,7 +71,7 @@ jobs:
       - uses: ./.github/actions/setup-project
 
       - name: Start required services (Greenmail)
-        run: docker-compose up -d
+        run: docker compose up -d
       - name: Test and measure coverage with pytest
         run: poetry run pytest --verbose --cov=dmarc_metrics_exporter --cov-report=xml
       - uses: codecov/codecov-action@v4
