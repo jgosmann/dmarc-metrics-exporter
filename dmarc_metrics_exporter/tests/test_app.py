@@ -8,8 +8,9 @@ import pytest
 from dmarc_metrics_exporter.app import App
 from dmarc_metrics_exporter.dmarc_metrics import DmarcMetricsCollection, InvalidMeta
 from dmarc_metrics_exporter.tests.sample_emails import (
-    create_email_with_zip_attachment,
+    create_email_with_attachment,
     create_minimal_email,
+    create_zip_report,
 )
 
 from .conftest import try_until_success
@@ -88,7 +89,7 @@ async def test_metrics_autosave():
 async def test_processes_duplicate_report_only_once():
     mocks = AppMocks()
     app = App(autosave_interval_seconds=0.5, **mocks.dependencies.as_flat_dict())
-    email = create_email_with_zip_attachment()
+    email = create_email_with_attachment(create_zip_report())
 
     await app.process_email(email)
     await app.process_email(email)

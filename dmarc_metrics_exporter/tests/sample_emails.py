@@ -1,6 +1,7 @@
 import io
 from email.message import EmailMessage
 from email.mime.application import MIMEApplication
+from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from zipfile import ZipFile
 
@@ -17,26 +18,17 @@ def create_minimal_email(to="dmarc-feedback@mydomain.de", content=None):
     return msg
 
 
-def create_email_with_xml_attachment(
-    to="dmarc-feedback@mydomain.de", *, report_id="12598866915817748661"
-):
+def create_xml_report(*, report_id="12598866915817748661") -> MIMEText:
     xml = MIMEText(create_sample_xml(report_id=report_id), "xml")
     xml.add_header(
         "Content-Disposition",
         "attachment",
         filename="reporter.com!localhost!1601510400!1601596799.xml",
     )
-    msg = EmailMessage()
-    msg.add_attachment(xml)
-    msg["Subject"] = "DMARC Aggregate Report"
-    msg["From"] = "noreply-dmarc-support@google.com"
-    msg["To"] = to
-    return msg
+    return xml
 
 
-def create_email_with_zip_attachment(
-    to="dmarc-feedback@mydomain.de", *, report_id="12598866915817748661"
-):
+def create_zip_report(*, report_id="12598866915817748661") -> MIMEApplication:
     compressed = io.BytesIO()
     with ZipFile(compressed, "w") as zip_file:
         zip_file.writestr(
@@ -44,14 +36,20 @@ def create_email_with_zip_attachment(
             create_sample_xml(report_id=report_id),
         )
 
-    xml = MIMEApplication(compressed.getvalue(), "zip")
-    xml.add_header(
+    zip_mime = MIMEApplication(compressed.getvalue(), "zip")
+    zip_mime.add_header(
         "Content-Disposition",
         "attachment",
         filename="reporter.com!localhost!1601510400!1601596799.zip",
     )
+    return zip_mime
+
+
+def create_email_with_attachment(
+    attachment: MIMEBase, *, to="dmarc-feedback@mydomain.de"
+):
     msg = EmailMessage()
-    msg.add_attachment(xml)
+    msg.add_attachment(attachment)
     msg["Subject"] = "DMARC Aggregate Report"
     msg["From"] = "noreply-dmarc-support@google.com"
     msg["To"] = to
