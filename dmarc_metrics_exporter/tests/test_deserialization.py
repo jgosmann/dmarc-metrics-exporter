@@ -13,19 +13,36 @@ from dmarc_metrics_exporter.dmarc_event import (
 )
 from dmarc_metrics_exporter.model.tests.sample_data import SAMPLE_DATACLASS
 from dmarc_metrics_exporter.tests.sample_emails import (
-    create_email_with_xml_attachment,
-    create_email_with_zip_attachment,
+    create_email_with_attachment,
+    create_gzip_report,
     create_minimal_email,
+    create_xml_report,
+    create_zip_report,
 )
 
 
 def test_extracts_plain_xml_from_email():
-    msg = create_email_with_xml_attachment()
+    msg = create_email_with_attachment(create_xml_report())
     assert list(get_aggregate_report_from_email(msg)) == [SAMPLE_DATACLASS]
 
 
 def test_extracts_zipped_xml_from_email():
-    msg = create_email_with_zip_attachment()
+    msg = create_email_with_attachment(create_zip_report())
+    assert list(get_aggregate_report_from_email(msg)) == [SAMPLE_DATACLASS]
+
+
+def test_extracts_gzipped_xml_from_email():
+    msg = create_email_with_attachment(create_gzip_report())
+    assert list(get_aggregate_report_from_email(msg)) == [SAMPLE_DATACLASS]
+
+
+def test_extracts_zipped_xml_from_email_with_octet_stream_content_type():
+    msg = create_email_with_attachment(create_zip_report(subtype="octet-stream"))
+    assert list(get_aggregate_report_from_email(msg)) == [SAMPLE_DATACLASS]
+
+
+def test_extracts_gzipped_xml_from_email_with_octet_stream_content_type():
+    msg = create_email_with_attachment(create_gzip_report(subtype="octet-stream"))
     assert list(get_aggregate_report_from_email(msg)) == [SAMPLE_DATACLASS]
 
 
