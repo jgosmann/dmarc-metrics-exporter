@@ -34,7 +34,7 @@ class DateRangeType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     end: Optional[int] = field(
         default=None,
@@ -42,7 +42,7 @@ class DateRangeType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
 
 
@@ -59,7 +59,7 @@ class IdentifierType:
         metadata={
             "type": "Element",
             "namespace": "",
-        }
+        },
     )
     envelope_from: Optional[str] = field(
         default=None,
@@ -67,7 +67,7 @@ class IdentifierType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     header_from: Optional[str] = field(
         default=None,
@@ -75,7 +75,7 @@ class IdentifierType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
 
 
@@ -114,14 +114,14 @@ class DkimauthResultType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     selector: Optional[str] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "",
-        }
+        },
     )
     result: Optional[DkimresultType] = field(
         default=None,
@@ -129,14 +129,14 @@ class DkimauthResultType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     human_result: Optional[str] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "",
-        }
+        },
     )
 
 
@@ -148,14 +148,14 @@ class PolicyOverrideReason:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     comment: Optional[str] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "",
-        }
+        },
     )
 
 
@@ -167,21 +167,21 @@ class PolicyPublishedType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     adkim: Optional[AlignmentType] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "",
-        }
+        },
     )
     aspf: Optional[AlignmentType] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "",
-        }
+        },
     )
     p: Optional[DispositionType] = field(
         default=None,
@@ -189,7 +189,7 @@ class PolicyPublishedType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     sp: Optional[DispositionType] = field(
         default=None,
@@ -197,7 +197,7 @@ class PolicyPublishedType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     pct: Optional[int] = field(
         default=None,
@@ -205,7 +205,7 @@ class PolicyPublishedType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     fo: Optional[str] = field(
         default=None,
@@ -213,7 +213,7 @@ class PolicyPublishedType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
 
 
@@ -225,7 +225,7 @@ class ReportMetadataType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     email: Optional[str] = field(
         default=None,
@@ -233,14 +233,14 @@ class ReportMetadataType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     extra_contact_info: Optional[str] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "",
-        }
+        },
     )
     report_id: Optional[str] = field(
         default=None,
@@ -248,7 +248,7 @@ class ReportMetadataType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     date_range: Optional[DateRangeType] = field(
         default=None,
@@ -256,14 +256,14 @@ class ReportMetadataType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     error: List[str] = field(
         default_factory=list,
         metadata={
             "type": "Element",
             "namespace": "",
-        }
+        },
     )
 
 
@@ -278,7 +278,7 @@ class SpfauthResultType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     scope: Optional[SpfdomainScope] = field(
         default=None,
@@ -286,7 +286,7 @@ class SpfauthResultType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     result: Optional[SpfresultType] = field(
         default=None,
@@ -294,7 +294,7 @@ class SpfauthResultType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
 
 
@@ -305,7 +305,7 @@ class AuthResultType:
         metadata={
             "type": "Element",
             "namespace": "",
-        }
+        },
     )
     spf: List[SpfauthResultType] = field(
         default_factory=list,
@@ -313,7 +313,7 @@ class AuthResultType:
             "type": "Element",
             "namespace": "",
             "min_occurs": 1,
-        }
+        },
     )
 
 
@@ -325,7 +325,7 @@ class PolicyEvaluatedType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     dkim: Optional[DmarcresultType] = field(
         default=None,
@@ -333,7 +333,7 @@ class PolicyEvaluatedType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     spf: Optional[DmarcresultType] = field(
         default=None,
@@ -341,14 +341,14 @@ class PolicyEvaluatedType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     reason: List[PolicyOverrideReason] = field(
         default_factory=list,
         metadata={
             "type": "Element",
             "namespace": "",
-        }
+        },
     )
 
 
@@ -361,7 +361,7 @@ class RowType:
             "namespace": "",
             "required": True,
             "pattern": r"((1?[0-9]?[0-9]|2[0-4][0-9]|25[0-5]).){3}                 (1?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])|                 ([A-Fa-f0-9]{1,4}:){7}[A-Fa-f0-9]{1,4}",
-        }
+        },
     )
     count: Optional[int] = field(
         default=None,
@@ -369,7 +369,7 @@ class RowType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     policy_evaluated: Optional[PolicyEvaluatedType] = field(
         default=None,
@@ -377,7 +377,7 @@ class RowType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
 
 
@@ -389,7 +389,7 @@ class RecordType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     identifiers: Optional[IdentifierType] = field(
         default=None,
@@ -397,7 +397,7 @@ class RecordType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     auth_results: Optional[AuthResultType] = field(
         default=None,
@@ -405,7 +405,7 @@ class RecordType:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
 
 
@@ -421,7 +421,7 @@ class Feedback:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     report_metadata: Optional[ReportMetadataType] = field(
         default=None,
@@ -429,7 +429,7 @@ class Feedback:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     policy_published: Optional[PolicyPublishedType] = field(
         default=None,
@@ -437,7 +437,7 @@ class Feedback:
             "type": "Element",
             "namespace": "",
             "required": True,
-        }
+        },
     )
     record: List[RecordType] = field(
         default_factory=list,
@@ -445,5 +445,5 @@ class Feedback:
             "type": "Element",
             "namespace": "",
             "min_occurs": 1,
-        }
+        },
     )
