@@ -128,7 +128,7 @@ jobs:
           version: ${{ steps.version.outputs.version }}
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           body_path: release-body.md
           tag_name: v${{ steps.version.outputs.version }}
