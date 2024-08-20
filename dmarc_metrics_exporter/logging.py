@@ -1,6 +1,6 @@
 import logging
 import logging.config
-from typing import Union, cast
+from typing import Any, Dict, Union, cast
 
 import structlog
 
@@ -42,7 +42,7 @@ def configure_logging(overrides: dict, *, debug: bool):
         structlog.processors.JSONRenderer(),
     ]
 
-    logging_config = {
+    logging_config: Dict[str, Any] = {
         "handlers": {
             "default": {
                 "class": "logging.StreamHandler",

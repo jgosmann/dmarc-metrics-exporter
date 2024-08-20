@@ -35,7 +35,7 @@ uvicorn = {extras = ["standard"], version = "^0.25.0"}
 xsdata = ">=23.7"
 
 [tool.poetry.dev-dependencies]
-aiohttp = "^3.7.3"
+aiohttp = "^3.7.3,!=3.10.5"
 black = "^23.7.0"
 isort = "^5.11.4"
 mypy = "^1.4.1"

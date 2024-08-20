@@ -9,7 +9,7 @@ repos:
   - id: check-yaml
   - id: check-added-large-files
 - repo: https://github.com/PyCQA/isort
-  rev: 5.12.0
+  rev: 5.13.2
   hooks:
   - id: isort
 - repo: https://github.com/psf/black
@@ -17,21 +17,21 @@ repos:
   hooks:
   - id: black
 - repo: https://github.com/PyCQA/pylint
-  rev: v3.0.3
+  rev: v3.2.6
   hooks:
   - id: pylint
     additional_dependencies:
-    - aiohttp==3.7.3
-    - bite-parser==0.2.3
+    - aiohttp==3.10.4
+    - bite-parser==0.2.4
     - dataclasses-serialization==1.3.1
     - prometheus_client==0.19.0
-    - pytest==7.4.0
-    - requests==2.26.0
-    - structlog==24.1.0
+    - pytest==7.4.4
+    - requests==2.32.3
+    - structlog==24.4.0
     - uvicorn==0.25.0
-    - xsdata==23.7
+    - xsdata==24.7
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.4.1
+  rev: v1.11.1
   hooks:
   - id: mypy
-    additional_dependencies: ["types-requests==2.28.11.12"]
+    additional_dependencies: ["types-requests==2.32.0.20240712"]
