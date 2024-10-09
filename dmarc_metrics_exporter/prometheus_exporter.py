@@ -103,7 +103,7 @@ class PrometheusExporter:
             labels=self.LABELS,
         )
         dmarc_invalid_reports_total = CounterMetricFamily(
-            "dmaric_invalid_reports_total",
+            "dmarc_invalid_reports_total",
             "Total numebr of report emails from which no report could be parsed.",
             labels=self.INVALID_LABELS,
         )
