@@ -6,6 +6,17 @@ All notable changes to this project will be documented in this file.
 The format is based on `Keep a Changelog <https://keepachangelog.com/en/1.0.0/>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
 
+[1.1.1] - 2024-10-10
+--------------------
+
+Fixed
+^^^^^
+
+* Fix misspelled metric name (use ``dmarc_invalid_reports_total`` instead of
+  ``dmaric_invalid_reports_total``).
+  (`#50 <https://github.com/jgosmann/dmarc-metrics-exporter/pull/50>`_)
+
+
 [1.1.0] - 2024-08-20
 --------------------
 
