@@ -13,7 +13,7 @@ Added
 ^^^^^
 
 * Handle reports with MIME type ``application/octet-stream``.
-  (`#48 <https://github.com/jgosmann/dmarc-metrics-exporter/issues/48`_)
+  (`#48 <https://github.com/jgosmann/dmarc-metrics-exporter/issues/48>`_)
 
 
 [1.0.0] - 2024-02-17
