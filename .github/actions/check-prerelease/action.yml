@@ -11,11 +11,15 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Create venv
+      run: python3 -m venv venv
+      shell: bash
+
     - name: Install packaging
-      run: pip install packaging
+      run: venv/bin/pip install packaging
       shell: bash
 
     - name: Check if prerelease
       id: check-prerelease
-      run: ./.github/actions/check-prerelease/check_prerelease.py ${{ inputs.version }} >> "$GITHUB_OUTPUT"
+      run: venv/bin/python3 ./.github/actions/check-prerelease/check_prerelease.py ${{ inputs.version }} >> "$GITHUB_OUTPUT"
       shell: bash
