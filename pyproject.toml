@@ -6,11 +6,11 @@ classifiers = [
   "Intended Audience :: System Administrators",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Topic :: Communications :: Email",
   "Topic :: System :: Monitoring",
 ]
@@ -29,9 +29,9 @@ dmarc-metrics-exporter = "dmarc_metrics_exporter.__main__:run"
 bite-parser = "^0.2.4"
 dataclasses-serialization = "^1.3.1"
 prometheus_client = "^0.21.0"
-python = "^3.8"
+python = "^3.9"
 structlog = ">=24.1.0"
-uvicorn = {extras = ["standard"], version = "^0.31.1"}
+uvicorn = {extras = ["standard"], version = "^0.32.0"}
 xsdata = ">=23.7"
 
 [tool.poetry.dev-dependencies]
@@ -39,7 +39,7 @@ aiohttp = "^3.7.3,!=3.10.5"
 black = "^24.8.0"
 isort = "^5.11.4"
 mypy = "^1.4.1"
-pylint = "^3.2.6"
+pylint = "^3.3.1"
 pytest = "^8.3.2"
 pytest-asyncio = "^0.24.0"
 pytest-cov = "^5.0.0"
