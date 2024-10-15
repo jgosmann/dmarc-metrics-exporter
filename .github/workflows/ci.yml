@@ -13,11 +13,9 @@ jobs:
       matrix:
         check:
           - name: Check code-formatting
-            run: poetry run black --check .
-          - name: Check import sorting
-            run: poetry run isort --check-only .
-          - name: pylint
-            run: poetry run pylint dmarc_metrics_exporter
+            run: poetry run ruff format --check .
+          - name: Lint
+            run: poetry run ruff check
           - name: Check static typing
             run: poetry run mypy dmarc_metrics_exporter
     steps:

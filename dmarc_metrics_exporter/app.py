@@ -85,7 +85,7 @@ class App:
         exporter_cls: Callable[[DmarcMetricsCollection], Any] = PrometheusExporter,
         autosave_interval_seconds: float = 60,
         deduplication_max_seconds: float = 7 * 24 * 60 * 60,
-        seen_reports_db: Optional[Path] = None
+        seen_reports_db: Optional[Path] = None,
     ):
         self.prometheus_addr = prometheus_addr
         self.exporter = exporter_cls(DmarcMetricsCollection())

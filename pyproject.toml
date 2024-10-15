@@ -34,62 +34,18 @@ structlog = ">=24.1.0"
 uvicorn = {extras = ["standard"], version = "^0.32.0"}
 xsdata = ">=23.7"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 aiohttp = "^3.7.3,!=3.10.5"
-black = "^24.8.0"
-isort = "^5.11.4"
 mypy = "^1.4.1"
-pylint = "^3.3.1"
 pytest = "^8.3.2"
 pytest-asyncio = "^0.24.0"
 pytest-cov = "^5.0.0"
 requests = "^2.26.0"
+ruff = "^0.6.9"
 types-requests = "^2.25.11"
 
-[tool.black]
-exclude = '''
-/(
-    \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
-| /dmarc_metrics_exporter/model/(__init__|dmarc_aggregate_report).py
-'''
-
-[tool.isort]
-force_grid_wrap = 0
-include_trailing_comma = true
-line_length = 88
-multi_line_output = 3
-skip = [
-  '.bzr',
-  '.direnv',
-  '.eggs',
-  '.git',
-  '.hg',
-  '.mypy_cache',
-  '.nox',
-  '.pants.d',
-  '.svn',
-  '.tox',
-  '.venv',
-  '_build',
-  'buck-out',
-  'build',
-  'dist',
-  'node_modules',
-  'venv',
-  'dmarc_metrics_exporter/model/__init__.py',
-  'dmarc_metrics_exporter/model/dmarc_aggregate_report.py',
-]
-use_parentheses = true
+[tool.ruff.lint]
+select = ["I"]
 
 [build-system]
 build-backend = "poetry.core.masonry.api"

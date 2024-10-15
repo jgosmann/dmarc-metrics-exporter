@@ -8,28 +8,14 @@ repos:
   - id: end-of-file-fixer
   - id: check-yaml
   - id: check-added-large-files
-- repo: https://github.com/PyCQA/isort
-  rev: 5.13.2
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  # Ruff version.
+  rev: v0.6.9
   hooks:
-  - id: isort
-- repo: https://github.com/psf/black
-  rev: 24.10.0
-  hooks:
-  - id: black
-- repo: https://github.com/PyCQA/pylint
-  rev: v3.3.1
-  hooks:
-  - id: pylint
-    additional_dependencies:
-    - aiohttp==3.10.4
-    - bite-parser==0.2.4
-    - dataclasses-serialization==1.3.1
-    - prometheus_client==0.21.0
-    - pytest==8.3.2
-    - requests==2.32.3
-    - structlog==24.4.0
-    - uvicorn==0.32.0
-    - xsdata==24.7
+    # Run the linter.
+    - id: ruff
+    # Run the formatter.
+    - id: ruff-format
 - repo: https://github.com/pre-commit/mirrors-mypy
   rev: v1.12.0
   hooks:
