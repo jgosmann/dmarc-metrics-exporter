@@ -31,7 +31,7 @@ dataclasses-serialization = "^1.3.1"
 prometheus_client = "^0.21.0"
 python = "^3.9"
 structlog = ">=24.1.0"
-uvicorn = {extras = ["standard"], version = "^0.31.1"}
+uvicorn = {extras = ["standard"], version = "^0.32.0"}
 xsdata = ">=23.7"
 
 [tool.poetry.dev-dependencies]
