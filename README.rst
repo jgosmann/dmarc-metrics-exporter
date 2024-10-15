@@ -264,7 +264,7 @@ Example docker-compose file:
         # source: https://github.com/jamborjan/dmarc-metrics-exporter/pkgs/container/dmarc-metrics-exporter
         container_name: dmarc-metrics-exporter
         hostname: dmarc-metrics-exporter
-        image: jgosmann/dmarc-metrics-exporter:1.1.1
+        image: jgosmann/dmarc-metrics-exporter:1.2.0
         restart: unless-stopped
         user: 1000:1000 #PUID=1000:PGID=1000
         expose:
