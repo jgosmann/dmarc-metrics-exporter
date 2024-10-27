@@ -45,7 +45,7 @@ ruff = "^0.6.9"
 types-requests = "^2.25.11"
 
 [tool.ruff.lint]
-select = ["I"]
+extend-select = ["I"]
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
