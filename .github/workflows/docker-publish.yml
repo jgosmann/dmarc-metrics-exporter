@@ -65,31 +65,18 @@ jobs:
         with:
           images: ${{ env.IMAGE_NAME }}
 
-      - name: Check if prerelease
-        id: check-prerelease
-        uses: ./.github/actions/check-prerelease
-        with:
-          version: ${{ steps.version.outputs.version }}
-
-      - name: Get latest release
-        id: latest-version
-        uses: ./.github/actions/get-latest-release
-        with:
-          package: dmarc-metrics-exporter
-
-      - name: Set tags
-        id: set-tags
+      - name: Get tags for Docker image
+        id: image-tags
         shell: bash
         run: |
-          {
-            echo 'TAGS<<EOF'
-            echo ${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
-            [ ${{ steps.version.outputs.version }} = ${{ steps.latest-version.outputs.latest_version }} ] \
-              && [ ${{ steps.check-prerelease.outputs.prerelease }} != true ] \
-              && echo ${{ env.IMAGE_NAME }}:latest
-            echo EOF
-          } >> "$GITHUB_OUTPUT"
-
+          echo 'TAGS<<EOF' >> "$GITHUB_OUTPUT"
+          curl  --header "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" --header "X-GitHub-Api-Version: 2022-11-28" \
+              https://api.github.com/repos/jgosmann/dmarc-metrics-exporter/releases \
+          | jq --raw-output '.[]["tag_name"] | sub("^v"; "")' \
+          | docker run --rm jgosmann/gen-semver-tags:0.1 ${{ steps.version.outputs.version }} \
+          | awk '{print "${{ env.IMAGE_NAME }}:"$0}' \
+          >> "$GITHUB_OUTPUT"
+          echo 'EOF' >> "$GITHUB_OUTPUT"
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
@@ -98,7 +85,7 @@ jobs:
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.set-tags.outputs.TAGS }}
+          tags: ${{ steps.image-tags.outputs.TAGS }}
           platforms: linux/amd64,linux/arm64
           labels: ${{ steps.meta.outputs.labels }}
           build-args: "version=${{ steps.version.outputs.version }}"
