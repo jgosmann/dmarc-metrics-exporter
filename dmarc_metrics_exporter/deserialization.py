@@ -4,6 +4,7 @@ import os.path
 from email.contentmanager import raw_data_manager
 from email.message import EmailMessage
 from typing import Callable, Generator, Mapping, Optional
+from xml.etree import ElementTree
 from zipfile import ZipFile
 
 from xsdata.formats.dataclass.context import XmlContext
@@ -72,6 +73,18 @@ class ReportExtractionError(Exception):
         return f"Failed to extract report from email by {from_email} with subject '{subject}'."
 
 
+def _strip_xml_namespaces(xml_payload: str) -> str:
+    root = ElementTree.fromstring(xml_payload)
+    for element in root.iter():
+        if isinstance(element.tag, str) and element.tag.startswith("{"):
+            element.tag = element.tag.split("}", 1)[1]
+        element.attrib = {
+            (k.split("}", 1)[1] if k.startswith("{") else k): v
+            for k, v in element.attrib.items()
+        }
+    return ElementTree.tostring(root, encoding="unicode")
+
+
 def get_aggregate_report_from_email(
     msg: EmailMessage,
 ) -> Generator[Feedback, None, None]:
@@ -85,7 +98,7 @@ def get_aggregate_report_from_email(
             content = raw_data_manager.get_content(part)
             has_found_a_report = True
             for payload in handler(part.get_filename(), content):
-                yield parser.from_string(payload, Feedback)
+                yield parser.from_string(_strip_xml_namespaces(payload), Feedback)
     if not has_found_a_report:
         raise ReportExtractionError(msg)
 
