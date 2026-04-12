@@ -1,0 +1,350 @@
+<?xml version="1.0"?>
+<!-- from draft-ietf-dmarc-aggregate-reporting-32 Appendic A -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+ targetNamespace="urn:ietf:params:xml:ns:dmarc-2.0"
+ xmlns="urn:ietf:params:xml:ns:dmarc-2.0"
+ elementFormDefault="qualified">
+
+<!-- Elements with an optional "lang" attribute. -->
+<xs:complexType name="langAttrString">
+ <xs:simpleContent>
+  <xs:extension base="xs:string">
+   <xs:attribute name="lang" type="xs:language"
+                 use="optional" default="en"/>
+  </xs:extension>
+ </xs:simpleContent>
+</xs:complexType>
+
+<!-- The time range in UTC defining the reporting period of
+     this report, specified in seconds since epoch. -->
+<xs:complexType name="DateRangeType">
+ <xs:all>
+  <xs:element name="begin" type="xs:integer"
+        minOccurs="1" maxOccurs="1"/>
+  <xs:element name="end" type="xs:integer"
+        minOccurs="1" maxOccurs="1"/>
+ </xs:all>
+</xs:complexType>
+
+<!-- Report generator metadata. -->
+<xs:complexType name="ReportMetadataType">
+ <xs:all>
+  <!-- Reporting Organization -->
+  <xs:element name="org_name" type="xs:string"
+        minOccurs="1" maxOccurs="1"/>
+  <!-- Contact to use when contacting the Reporting Organization -->
+  <xs:element name="email" type="xs:string"
+        minOccurs="1" maxOccurs="1"/>
+  <!-- Additional contact details -->
+  <xs:element name="extra_contact_info" type="langAttrString"
+        minOccurs="0" maxOccurs="1"/>
+  <!-- Unique Report-ID -->
+  <xs:element name="report_id" type="xs:string"
+        minOccurs="1" maxOccurs="1"/>
+  <!-- Timestamps used when forming report data -->
+  <xs:element name="date_range" type="DateRangeType"
+        minOccurs="1" maxOccurs="1"/>
+  <!-- Optional error messages when processing DMARC policy -->
+  <xs:element name="error" type="langAttrString"
+        minOccurs="0" maxOccurs="1"/>
+  <!-- Optional information about the generating software -->
+  <xs:element name="generator" type="xs:string"
+        minOccurs="0" maxOccurs="1"/>
+ </xs:all>
+</xs:complexType>
+
+<!-- Alignment mode (relaxed or strict) for DKIM and SPF. -->
+<xs:simpleType name="AlignmentType">
+ <xs:restriction base="xs:string">
+  <xs:enumeration value="r"/>
+  <xs:enumeration value="s"/>
+ </xs:restriction>
+</xs:simpleType>
+
+<!-- The policy actions specified by p, sp and np in the
+     DMARC Policy Record. -->
+<xs:simpleType name="DispositionType">
+ <xs:restriction base="xs:string">
+  <xs:enumeration value="none"/>
+  <xs:enumeration value="quarantine"/>
+  <xs:enumeration value="reject"/>
+ </xs:restriction>
+</xs:simpleType>
+
+<!-- The policy actions utilized on messages for this record. -->
+<!--
+     "none": No action taken
+     "pass": No action, passing DMARC w/enforcing policy
+     "quarantine": Failed DMARC, message marked for quarantine
+     "reject": Failed DMARC, marked as reject
+-->
+<xs:simpleType name="ActionDispositionType">
+ <xs:restriction base="xs:string">
+  <xs:enumeration value="none"/>
+  <xs:enumeration value="pass"/>
+  <xs:enumeration value="quarantine"/>
+  <xs:enumeration value="reject"/>
+ </xs:restriction>
+</xs:simpleType>
+
+<!-- The method used to discover the DMARC Policy Record used during
+     evaluation.  The available values are "psl" and "treewalk",
+     where "psl" is the method from [@?RFC7489] and the "treewalk"
+     is described in [@I-D.ietf-dmarc-dmarcbis]. -->
+<xs:simpleType name="DiscoveryType">
+ <xs:restriction base="xs:string">
+  <xs:enumeration value="psl"/>
+  <xs:enumeration value="treewalk"/>
+ </xs:restriction>
+</xs:simpleType>
+
+<!-- The published DMARC policy.  Unspecified tags have their
+     default values. -->
+<xs:complexType name="PolicyPublishedType">
+ <xs:all>
+  <!-- The domain at which the DMARC record was found. -->
+  <xs:element name="domain" type="xs:string"
+        minOccurs="1" maxOccurs="1"/>
+  <!-- The policy published for messages from: -->
+  <!-- * the domain. -->
+  <xs:element name="p" type="DispositionType"
+        minOccurs="1" maxOccurs="1"/>
+  <!-- * subdomains. -->
+  <xs:element name="sp" type="DispositionType"
+        minOccurs="0" maxOccurs="1"/>
+  <!-- * non-existent subdomains. -->
+  <xs:element name="np" type="DispositionType"
+        minOccurs="0" maxOccurs="1"/>
+  <!-- The DKIM alignment mode. -->
+  <xs:element name="adkim" type="AlignmentType"
+        minOccurs="0" maxOccurs="1"/>
+  <!-- The SPF alignment mode. -->
+  <xs:element name="aspf" type="AlignmentType"
+        minOccurs="0" maxOccurs="1"/>
+  <!-- Method used to find/obtain DMARC policy -->
+  <xs:element name="discovery_method" type="DiscoveryType"
+        minOccurs="0" maxOccurs="1"/>
+  <!-- Failure reporting options in effect. -->
+  <xs:element name="fo" type="xs:string"
+        minOccurs="0" maxOccurs="1"/>
+  <!-- Whether testing mode was declared in the DMARC Record -->
+  <xs:element name="testing" type="TestingType"
+        minOccurs="0" maxOccurs="1"/>
+ </xs:all>
+</xs:complexType>
+
+<!-- Values for Testing mode attached to policy -->
+<xs:simpleType name="TestingType">
+ <xs:restriction base="xs:string">
+  <xs:enumeration value="n"/>
+  <xs:enumeration value="y"/>
+ </xs:restriction>
+</xs:simpleType>
+
+<!-- The DMARC-aligned authentication result. -->
+<xs:simpleType name="DMARCResultType">
+ <xs:restriction base="xs:string">
+  <xs:enumeration value="pass"/>
+  <xs:enumeration value="fail"/>
+ </xs:restriction>
+</xs:simpleType>
+
+<!-- Reasons that may affect DMARC disposition or execution. -->
+<xs:simpleType name="PolicyOverrideType">
+ <xs:restriction base="xs:string">
+  <xs:enumeration value="local_policy"/>
+  <xs:enumeration value="mailing_list"/>
+  <xs:enumeration value="other"/>
+  <xs:enumeration value="policy_test_mode"/>
+  <xs:enumeration value="trusted_forwarder"/>
+ </xs:restriction>
+</xs:simpleType>
+
+<!-- Override reason consists of pre-defined override type and
+     free-text comment. -->
+<xs:complexType name="PolicyOverrideReason">
+ <xs:all>
+  <xs:element name="type" type="PolicyOverrideType"
+        minOccurs="1" maxOccurs="1"/>
+  <xs:element name="comment" type="langAttrString"
+        minOccurs="0" maxOccurs="1"/>
+ </xs:all>
+</xs:complexType>
+
+<!-- Taking into account everything else in the record,
+     the results of applying DMARC. If alignment fails
+     and the policy applied does not match the domain's
+     configured policy, the reason element MUST be specified -->
+<xs:complexType name="PolicyEvaluatedType">
+ <xs:sequence>
+  <xs:element name="disposition" type="ActionDispositionType"
+        minOccurs="1" maxOccurs="1"/>
+  <xs:element name="dkim" type="DMARCResultType"
+        minOccurs="1" maxOccurs="1"/>
+  <xs:element name="spf" type="DMARCResultType"
+        minOccurs="1" maxOccurs="1"/>
+  <xs:element name="reason" type="PolicyOverrideReason"
+        minOccurs="0" maxOccurs="unbounded"/>
+ </xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="RowType">
+ <xs:all>
+  <!-- The connecting IP. IPv4address or IPv6address
+       as defined in RFC 3986 section 3.2.2 -->
+  <xs:element name="source_ip" type="xs:string"
+        minOccurs="1" maxOccurs="1"/>
+  <!-- The number of messages for which the
+       PolicyEvaluatedType was applied. -->
+  <xs:element name="count" type="xs:integer"
+        minOccurs="1" maxOccurs="1"/>
+  <!-- The DMARC disposition applied to matching messages. -->
+  <xs:element name="policy_evaluated" type="PolicyEvaluatedType"
+        minOccurs="1" maxOccurs="1"/>
+ </xs:all>
+</xs:complexType>
+
+<xs:complexType name="IdentifierType">
+ <xs:all>
+  <!-- The RFC5322.From domain. -->
+  <xs:element name="header_from" type="xs:string"
+        minOccurs="1" maxOccurs="1"/>
+  <!-- The RFC5321.MailFrom domain -->
+  <xs:element name="envelope_from" type="xs:string"
+        minOccurs="0" maxOccurs="1"/>
+  <!-- The envelope recipient domain. -->
+  <xs:element name="envelope_to" type="xs:string"
+        minOccurs="0" maxOccurs="1"/>
+ </xs:all>
+</xs:complexType>
+
+<!-- DKIM verification result, see RFC 8601 Section 2.7.1. -->
+<xs:simpleType name="DKIMResultType">
+ <xs:restriction base="xs:string">
+  <xs:enumeration value="none"/>
+  <xs:enumeration value="pass"/>
+  <xs:enumeration value="fail"/>
+  <xs:enumeration value="policy"/>
+  <xs:enumeration value="neutral"/>
+  <xs:enumeration value="temperror"/>
+  <xs:enumeration value="permerror"/>
+ </xs:restriction>
+</xs:simpleType>
+
+<xs:complexType name="DKIMAuthResultType">
+ <xs:all>
+  <!-- The "d=" tag in the signature. -->
+  <xs:element name="domain" type="xs:string"
+        minOccurs="1" maxOccurs="1"/>
+  <!-- The "s=" tag in the signature. -->
+  <xs:element name="selector" type="xs:string"
+        minOccurs="1" maxOccurs="1"/>
+  <!-- The DKIM verification result. -->
+  <xs:element name="result" type="DKIMResultType"
+        minOccurs="1" maxOccurs="1"/>
+  <!-- Any extra information (e.g., from Authentication-Results). -->
+  <xs:element name="human_result" type="langAttrString"
+        minOccurs="0" maxOccurs="1"/>
+ </xs:all>
+</xs:complexType>
+
+<!-- SPF domain scope. -->
+<xs:simpleType name="SPFDomainScope">
+ <xs:restriction base="xs:string">
+  <xs:enumeration value="mfrom"/>
+ </xs:restriction>
+</xs:simpleType>
+
+<!-- SPF verification result, see RFC 8601 Section 2.7.2. -->
+<xs:simpleType name="SPFResultType">
+ <xs:restriction base="xs:string">
+  <xs:enumeration value="none"/>
+  <xs:enumeration value="pass"/>
+  <xs:enumeration value="fail"/>
+  <xs:enumeration value="softfail"/>
+  <xs:enumeration value="policy"/>
+  <xs:enumeration value="neutral"/>
+  <xs:enumeration value="temperror"/>
+  <xs:enumeration value="permerror"/>
+ </xs:restriction>
+</xs:simpleType>
+
+<xs:complexType name="SPFAuthResultType">
+ <xs:all>
+  <!-- The checked domain. -->
+  <xs:element name="domain" type="xs:string"
+        minOccurs="1" maxOccurs="1"/>
+  <!-- The scope of the checked domain. -->
+  <xs:element name="scope" type="SPFDomainScope"
+        minOccurs="0" maxOccurs="1"/>
+  <!-- The SPF verification result. -->
+  <xs:element name="result" type="SPFResultType"
+        minOccurs="1" maxOccurs="1"/>
+  <!-- Any extra information (e.g., from Authentication-Results).
+       The information in the field below should be for a
+       person to be provided with additional information
+       that may be useful when debugging SPF authentication
+       issues.  This could include broken records, invalid
+       DNS responses, etc. -->
+  <xs:element name="human_result" type="langAttrString"
+        minOccurs="0" maxOccurs="1"/>
+ </xs:all>
+</xs:complexType>
+
+<!-- This element contains DKIM and SPF results, uninterpreted
+     with respect to DMARC. -->
+<xs:complexType name="AuthResultType">
+ <xs:sequence>
+  <!-- There may be zero or more DKIM signatures. -->
+  <xs:element name="dkim" type="DKIMAuthResultType"
+        minOccurs="0" maxOccurs="unbounded"/>
+  <!-- There may be zero or one SPF result. -->
+  <xs:element name="spf" type="SPFAuthResultType"
+        minOccurs="0" maxOccurs="1"/>
+ </xs:sequence>
+</xs:complexType>
+
+<!-- This element contains all the authentication results that
+     were evaluated by the receiving system for the given set of
+     messages. -->
+<xs:complexType name="RecordType">
+ <xs:sequence>
+  <xs:element name="row" type="RowType"
+        minOccurs="1" maxOccurs="1"/>
+  <xs:element name="identifiers" type="IdentifierType"
+        minOccurs="1" maxOccurs="1"/>
+  <xs:element name="auth_results" type="AuthResultType"
+        minOccurs="1" maxOccurs="1"/>
+  <!-- Extension at record level -->
+  <xs:any processContents="lax"
+        minOccurs="0" maxOccurs="unbounded"/>
+ </xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="ExtensionType">
+ <xs:sequence>
+  <xs:any processContents="lax"
+        minOccurs="0" maxOccurs="unbounded"/>
+ </xs:sequence>
+</xs:complexType>
+
+<!-- Parent -->
+<xs:element name="feedback">
+ <xs:complexType>
+  <xs:sequence>
+   <xs:element name="version" type="xs:decimal"
+         minOccurs="0" maxOccurs="1"/>
+   <xs:element name="report_metadata" type="ReportMetadataType"
+         minOccurs="1" maxOccurs="1"/>
+   <xs:element name="policy_published" type="PolicyPublishedType"
+         minOccurs="1" maxOccurs="1"/>
+   <!-- Extension at top level -->
+   <xs:element name="extension" type="ExtensionType"
+         minOccurs="0" maxOccurs="1"/>
+   <!-- One record per (IP, result, IDs Auths) tuples -->
+   <xs:element name="record" type="RecordType"
+         minOccurs="1" maxOccurs="unbounded"/>
+  </xs:sequence>
+ </xs:complexType>
+</xs:element>
+</xs:schema>
