@@ -1,7 +1,7 @@
 import dmarc_metrics_exporter.model.dmarc_0_1 as m
 
 
-def create_sample_xml(*, report_id: str = "12598866915817748661") -> str:
+def create_sample_xml_0_1(*, report_id: str = "12598866915817748661") -> str:
     return f"""
 <?xml version="1.0" encoding="UTF-8" ?>
 <feedback>
@@ -53,7 +53,7 @@ def create_sample_xml(*, report_id: str = "12598866915817748661") -> str:
 """.strip()
 
 
-SAMPLE_DATACLASS = m.Feedback(
+SAMPLE_DATACLASS_0_1 = m.Feedback(
     report_metadata=m.ReportMetadataType(
         org_name="google.com",
         email="noreply-dmarc-support@google.com",

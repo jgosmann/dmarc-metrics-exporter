@@ -127,11 +127,14 @@ class App:
             for report in get_aggregate_report_from_email(msg):
                 org_name = report.report_metadata and report.report_metadata.org_name
                 report_id = report.report_metadata and report.report_metadata.report_id
+                log = logger.bind(org_name=org_name, report_id=report_id)
                 if org_name and report_id:
                     if (org_name, report_id) in self._seen_reports:
+                        log.info("Skipping duplicate report")
                         continue
                     self._seen_reports.add((org_name, report_id))
 
+                log.info("Processing report")
                 for event in convert_to_events(report):
                     with self.exporter.get_metrics() as metrics:
                         metrics.update(event)

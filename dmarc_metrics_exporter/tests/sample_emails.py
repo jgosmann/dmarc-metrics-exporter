@@ -6,7 +6,8 @@ from email.mime.text import MIMEText
 from gzip import GzipFile
 from zipfile import ZipFile
 
-from dmarc_metrics_exporter.model.tests.sample_data import create_sample_xml
+from dmarc_metrics_exporter.model.tests.sample_data_0_1 import create_sample_xml_0_1
+from dmarc_metrics_exporter.model.tests.sample_data_2_0 import create_sample_xml_2_0
 
 
 def create_minimal_email(to="dmarc-feedback@mydomain.de", content=None):
@@ -20,7 +21,17 @@ def create_minimal_email(to="dmarc-feedback@mydomain.de", content=None):
 
 
 def create_xml_report(*, report_id="12598866915817748661") -> MIMEText:
-    xml = MIMEText(create_sample_xml(report_id=report_id), "xml")
+    xml = MIMEText(create_sample_xml_0_1(report_id=report_id), "xml")
+    xml.add_header(
+        "Content-Disposition",
+        "attachment",
+        filename="reporter.com!localhost!1601510400!1601596799.xml",
+    )
+    return xml
+
+
+def create_xml_report_2_0(*, report_id="12598866915817748661") -> MIMEText:
+    xml = MIMEText(create_sample_xml_2_0(report_id=report_id), "xml")
     xml.add_header(
         "Content-Disposition",
         "attachment",
@@ -36,7 +47,26 @@ def create_zip_report(
     with ZipFile(compressed, "w") as zip_file:
         zip_file.writestr(
             "reporter.com!localhost!1601510400!1601596799.xml",
-            create_sample_xml(report_id=report_id),
+            create_sample_xml_0_1(report_id=report_id),
+        )
+
+    zip_mime = MIMEApplication(compressed.getvalue(), subtype)
+    zip_mime.add_header(
+        "Content-Disposition",
+        "attachment",
+        filename="reporter.com!localhost!1601510400!1601596799.zip",
+    )
+    return zip_mime
+
+
+def create_zip_report_2_0(
+    *, report_id="12598866915817748661", subtype="zip"
+) -> MIMEApplication:
+    compressed = io.BytesIO()
+    with ZipFile(compressed, "w") as zip_file:
+        zip_file.writestr(
+            "reporter.com!localhost!1601510400!1601596799.xml",
+            create_sample_xml_2_0(report_id=report_id),
         )
 
     zip_mime = MIMEApplication(compressed.getvalue(), subtype)
@@ -54,7 +84,7 @@ def create_gzip_report(
     compressed = io.BytesIO()
     filename = "reporter.com!localhost!1601510400!1601596799.xml.gz"
     with GzipFile(filename, mode="wb", fileobj=compressed) as gzip_file:
-        gzip_file.write(create_sample_xml(report_id=report_id).encode("utf-8"))
+        gzip_file.write(create_sample_xml_0_1(report_id=report_id).encode("utf-8"))
 
     gzip_mime = MIMEApplication(compressed.getvalue(), subtype)
     gzip_mime.add_header(
