@@ -16,7 +16,7 @@ from dmarc_metrics_exporter.dmarc_event import (
     DmarcResult,
     Meta,
 )
-from dmarc_metrics_exporter.model.dmarc_aggregate_report import (
+from dmarc_metrics_exporter.model.dmarc_0_1 import (
     DispositionType,
     DkimresultType,
     DmarcresultType,
@@ -94,7 +94,7 @@ def _map_disposition(disposition: Optional[DispositionType]) -> Disposition:
     if disposition is None:
         return Disposition.NONE_VALUE
     return {
-        DispositionType.NONE_VALUE: Disposition.NONE_VALUE,
+        DispositionType.NONE: Disposition.NONE_VALUE,
         DispositionType.QUARANTINE: Disposition.QUARANTINE,
         DispositionType.REJECT: Disposition.REJECT,
     }[disposition]
@@ -118,7 +118,7 @@ def convert_to_events(feedback: Feedback) -> Generator[DmarcEvent, None, None]:
         if record.auth_results and len(record.auth_results.dkim) > 0:
             dkim = record.auth_results.dkim[0]
             dkim_domain = dkim.domain or ""
-            dkim_pass = dkim.result == DkimresultType.PASS_VALUE
+            dkim_pass = dkim.result == DkimresultType.PASS
         else:
             dkim_domain = ""
             dkim_pass = False
@@ -126,17 +126,15 @@ def convert_to_events(feedback: Feedback) -> Generator[DmarcEvent, None, None]:
         if record.auth_results and len(record.auth_results.spf) > 0:
             spf = record.auth_results.spf[0]
             spf_domain = spf.domain or ""
-            spf_pass = spf.result == SpfresultType.PASS_VALUE
+            spf_pass = spf.result == SpfresultType.PASS
         else:
             spf_domain = ""
             spf_pass = False
 
         if record.row.policy_evaluated:
             disposition = _map_disposition(record.row.policy_evaluated.disposition)
-            dkim_aligned = (
-                record.row.policy_evaluated.dkim == DmarcresultType.PASS_VALUE
-            )
-            spf_aligned = record.row.policy_evaluated.spf == DmarcresultType.PASS_VALUE
+            dkim_aligned = record.row.policy_evaluated.dkim == DmarcresultType.PASS
+            spf_aligned = record.row.policy_evaluated.spf == DmarcresultType.PASS
         else:
             disposition = Disposition.NONE_VALUE
             dkim_aligned = False

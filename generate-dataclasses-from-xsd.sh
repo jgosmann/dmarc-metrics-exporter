@@ -2,4 +2,4 @@
 
 set -o errexit -o nounset -o pipefail
 
-poetry run xsdata generate dmarc-aggregate-report.xsd --package dmarc_metrics_exporter.model
+poetry run xsdata generate dmarc-aggregate-report.xsd --package dmarc_metrics_exporter.model.dmarc_0_1

@@ -12,8 +12,8 @@ class AlignmentType(Enum):
 
 
 class DkimresultType(Enum):
-    NONE_VALUE = "none"
-    PASS_VALUE = "pass"
+    NONE = "none"
+    PASS = "pass"
     FAIL = "fail"
     POLICY = "policy"
     NEUTRAL = "neutral"
@@ -22,7 +22,7 @@ class DkimresultType(Enum):
 
 
 class DmarcresultType(Enum):
-    PASS_VALUE = "pass"
+    PASS = "pass"
     FAIL = "fail"
 
 
@@ -47,7 +47,7 @@ class DateRangeType:
 
 
 class DispositionType(Enum):
-    NONE_VALUE = "none"
+    NONE = "none"
     QUARANTINE = "quarantine"
     REJECT = "reject"
 
@@ -94,9 +94,9 @@ class SpfdomainScope(Enum):
 
 
 class SpfresultType(Enum):
-    NONE_VALUE = "none"
+    NONE = "none"
     NEUTRAL = "neutral"
-    PASS_VALUE = "pass"
+    PASS = "pass"
     FAIL = "fail"
     SOFTFAIL = "softfail"
     TEMPERROR = "temperror"
@@ -142,9 +142,10 @@ class DkimauthResultType:
 
 @dataclass
 class PolicyOverrideReason:
-    type: Optional[PolicyOverrideType] = field(
+    type_value: Optional[PolicyOverrideType] = field(
         default=None,
         metadata={
+            "name": "type",
             "type": "Element",
             "namespace": "",
             "required": True,

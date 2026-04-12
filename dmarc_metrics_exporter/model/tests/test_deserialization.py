@@ -2,7 +2,7 @@ from xsdata.formats.dataclass.context import XmlContext
 from xsdata.formats.dataclass.parsers import XmlParser
 from xsdata.formats.dataclass.parsers.config import ParserConfig
 
-from dmarc_metrics_exporter.model.dmarc_aggregate_report import Feedback
+from dmarc_metrics_exporter.model.dmarc_0_1 import Feedback
 
 from .sample_data import SAMPLE_DATACLASS, create_sample_xml
 
