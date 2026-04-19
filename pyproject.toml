@@ -41,7 +41,7 @@ pytest = "^8.3.2"
 pytest-asyncio = "^0.24.0"
 pytest-cov = "^5.0.0"
 requests = "^2.26.0"
-ruff = "^0.6.9"
+ruff = "^0.15.11"
 types-requests = "^2.25.11"
 
 [tool.ruff.lint]
