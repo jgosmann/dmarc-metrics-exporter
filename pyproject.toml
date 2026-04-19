@@ -20,7 +20,7 @@ license = "MIT"
 name = "dmarc-metrics-exporter"
 readme = "README.rst"
 repository = "https://github.com/jgosmann/dmarc-metrics-exporter/"
-version = "1.2.0" # Update also in __init__.py and Docker compose example in readme!
+version = "1.3.0" # Update also in __init__.py and Docker compose example in readme!
 
 [tool.poetry.scripts]
 dmarc-metrics-exporter = "dmarc_metrics_exporter.__main__:run"
@@ -28,11 +28,11 @@ dmarc-metrics-exporter = "dmarc_metrics_exporter.__main__:run"
 [tool.poetry.dependencies]
 bite-parser = "^0.2.4"
 prometheus_client = "^0.25.0"
+pydantic = "^2.13.2"
 python = "^3.10"
 structlog = ">=24.1.0"
 uvicorn = {extras = ["standard"], version = "^0.44.0"}
 xsdata = ">=23.7"
-pydantic = "^2.13.2"
 
 [tool.poetry.group.dev.dependencies]
 aiohttp = "^3.7.3,!=3.10.5"

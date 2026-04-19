@@ -9,7 +9,7 @@ on:
   workflow_call:
     inputs:
       version:
-        description: 'Git reference to extract version from  to build a Docker image for.'
+        description: "Git reference to extract version from  to build a Docker image for."
         required: true
         type: string
     secrets:
@@ -20,12 +20,11 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Published version on PyPI to build a Docker image for.'
+        description: "Published version on PyPI to build a Docker image for."
         required: true
 
 env:
   IMAGE_NAME: jgosmann/dmarc-metrics-exporter
-
 
 jobs:
   build:
@@ -38,10 +37,11 @@ jobs:
     steps:
       - name: Set version from ref
         id: version
-        run: REF=${{ inputs.version }}; TAG=${REF#refs/*/}; echo "version=${TAG#v}" >> $GITHUB_OUTPUT
+        run: REF=${{ inputs.version }}; TAG=${REF#refs/*/}; echo "version=${TAG#v}" >>
+          $GITHUB_OUTPUT
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
