@@ -13,6 +13,7 @@ Added
 ^^^^^
 
 * Support for DMARC 2.0 reports from [draft-ietf-dmarc-aggregate-reporting-32](https://datatracker.ietf.org/doc/draft-ietf-dmarc-aggregate-reporting/32/).
+* Support for Python 3.14.
 
 Changed
 ^^^^^^^
