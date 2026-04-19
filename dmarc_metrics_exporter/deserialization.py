@@ -3,9 +3,10 @@ import io
 import os.path
 from email.contentmanager import raw_data_manager
 from email.message import EmailMessage
-from typing import Callable, Generator, Mapping, Optional
+from typing import Callable, Generator, Mapping, Union
 from zipfile import ZipFile
 
+import xsdata
 from xsdata.formats.dataclass.context import XmlContext
 from xsdata.formats.dataclass.parsers.config import ParserConfig
 from xsdata.formats.dataclass.parsers.xml import XmlParser
@@ -16,13 +17,7 @@ from dmarc_metrics_exporter.dmarc_event import (
     DmarcResult,
     Meta,
 )
-from dmarc_metrics_exporter.model.dmarc_aggregate_report import (
-    DispositionType,
-    DkimresultType,
-    DmarcresultType,
-    Feedback,
-    SpfresultType,
-)
+from dmarc_metrics_exporter.model import dmarc_0_1, dmarc_2_0
 
 
 def handle_octet_stream(filename: str, buffer: bytes) -> Generator[str, None, None]:
@@ -74,8 +69,11 @@ class ReportExtractionError(Exception):
 
 def get_aggregate_report_from_email(
     msg: EmailMessage,
-) -> Generator[Feedback, None, None]:
+) -> Generator[Union[dmarc_0_1.Feedback, dmarc_2_0.Feedback], None, None]:
     parser = XmlParser(
+        context=XmlContext(), config=ParserConfig(fail_on_unknown_properties=True)
+    )
+    fallback_parser = XmlParser(
         context=XmlContext(), config=ParserConfig(fail_on_unknown_properties=False)
     )
     has_found_a_report = False
@@ -85,22 +83,34 @@ def get_aggregate_report_from_email(
             content = raw_data_manager.get_content(part)
             has_found_a_report = True
             for payload in handler(part.get_filename(), content):
-                yield parser.from_string(payload, Feedback)
+                try:
+                    yield parser.from_string(payload, dmarc_2_0.Feedback)
+                except xsdata.exceptions.ParserError:
+                    yield fallback_parser.from_string(payload, dmarc_0_1.Feedback)
     if not has_found_a_report:
         raise ReportExtractionError(msg)
 
 
-def _map_disposition(disposition: Optional[DispositionType]) -> Disposition:
+def _map_disposition(
+    disposition: Union[
+        None, dmarc_0_1.DispositionType, dmarc_2_0.ActionDispositionType
+    ],
+) -> Disposition:
     if disposition is None:
         return Disposition.NONE_VALUE
     return {
-        DispositionType.NONE_VALUE: Disposition.NONE_VALUE,
-        DispositionType.QUARANTINE: Disposition.QUARANTINE,
-        DispositionType.REJECT: Disposition.REJECT,
+        dmarc_0_1.DispositionType.NONE: Disposition.NONE_VALUE,
+        dmarc_0_1.DispositionType.QUARANTINE: Disposition.QUARANTINE,
+        dmarc_0_1.DispositionType.REJECT: Disposition.REJECT,
+        dmarc_2_0.ActionDispositionType.NONE: Disposition.NONE_VALUE,
+        dmarc_2_0.ActionDispositionType.QUARANTINE: Disposition.QUARANTINE,
+        dmarc_2_0.ActionDispositionType.REJECT: Disposition.REJECT,
     }[disposition]
 
 
-def convert_to_events(feedback: Feedback) -> Generator[DmarcEvent, None, None]:
+def convert_to_events(
+    feedback: Union[dmarc_0_1.Feedback, dmarc_2_0.Feedback],
+) -> Generator[DmarcEvent, None, None]:
     for record in feedback.record:
         if record.row is None:
             continue
@@ -118,25 +128,35 @@ def convert_to_events(feedback: Feedback) -> Generator[DmarcEvent, None, None]:
         if record.auth_results and len(record.auth_results.dkim) > 0:
             dkim = record.auth_results.dkim[0]
             dkim_domain = dkim.domain or ""
-            dkim_pass = dkim.result == DkimresultType.PASS_VALUE
+            dkim_pass = dkim.result in (
+                dmarc_0_1.DkimresultType.PASS,
+                dmarc_2_0.DkimresultType.PASS,
+            )
         else:
             dkim_domain = ""
             dkim_pass = False
 
-        if record.auth_results and len(record.auth_results.spf) > 0:
-            spf = record.auth_results.spf[0]
-            spf_domain = spf.domain or ""
-            spf_pass = spf.result == SpfresultType.PASS_VALUE
-        else:
-            spf_domain = ""
-            spf_pass = False
+        spf_domain = ""
+        spf_pass = False
+        if record.auth_results:
+            spf = record.auth_results.spf
+            if isinstance(spf, list) and len(spf) > 0:
+                spf_domain = spf[0].domain or ""
+                spf_pass = spf[0].result == dmarc_0_1.SpfresultType.PASS
+            elif isinstance(spf, dmarc_2_0.SpfauthResultType):
+                spf_domain = spf.domain or ""
+                spf_pass = spf.result == dmarc_2_0.SpfresultType.PASS
 
         if record.row.policy_evaluated:
             disposition = _map_disposition(record.row.policy_evaluated.disposition)
-            dkim_aligned = (
-                record.row.policy_evaluated.dkim == DmarcresultType.PASS_VALUE
+            dkim_aligned = record.row.policy_evaluated.dkim in (
+                dmarc_0_1.DmarcresultType.PASS,
+                dmarc_2_0.DmarcresultType.PASS,
             )
-            spf_aligned = record.row.policy_evaluated.spf == DmarcresultType.PASS_VALUE
+            spf_aligned = record.row.policy_evaluated.spf in (
+                dmarc_0_1.DmarcresultType.PASS,
+                dmarc_2_0.DmarcresultType.PASS,
+            )
         else:
             disposition = Disposition.NONE_VALUE
             dkim_aligned = False

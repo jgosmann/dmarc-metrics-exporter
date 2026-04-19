@@ -3,7 +3,14 @@ from decimal import Decimal
 from enum import Enum
 from typing import List, Optional
 
-__NAMESPACE__ = "http://dmarc.org/dmarc-xml/0.1"
+__NAMESPACE__ = "urn:ietf:params:xml:ns:dmarc-2.0"
+
+
+class ActionDispositionType(Enum):
+    NONE = "none"
+    PASS = "pass"
+    QUARANTINE = "quarantine"
+    REJECT = "reject"
 
 
 class AlignmentType(Enum):
@@ -12,8 +19,8 @@ class AlignmentType(Enum):
 
 
 class DkimresultType(Enum):
-    NONE_VALUE = "none"
-    PASS_VALUE = "pass"
+    NONE = "none"
+    PASS = "pass"
     FAIL = "fail"
     POLICY = "policy"
     NEUTRAL = "neutral"
@@ -22,7 +29,7 @@ class DkimresultType(Enum):
 
 
 class DmarcresultType(Enum):
-    PASS_VALUE = "pass"
+    PASS = "pass"
     FAIL = "fail"
 
 
@@ -32,7 +39,7 @@ class DateRangeType:
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
             "required": True,
         },
     )
@@ -40,67 +47,105 @@ class DateRangeType:
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
             "required": True,
         },
     )
 
 
+class DiscoveryType(Enum):
+    PSL = "psl"
+    TREEWALK = "treewalk"
+
+
 class DispositionType(Enum):
-    NONE_VALUE = "none"
+    NONE = "none"
     QUARANTINE = "quarantine"
     REJECT = "reject"
 
 
 @dataclass
+class ExtensionType:
+    any_element: List[object] = field(
+        default_factory=list,
+        metadata={
+            "type": "Wildcard",
+            "namespace": "##any",
+        },
+    )
+
+
+@dataclass
 class IdentifierType:
-    envelope_to: Optional[str] = field(
+    header_from: Optional[str] = field(
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
+            "required": True,
         },
     )
     envelope_from: Optional[str] = field(
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
-            "required": True,
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
         },
     )
-    header_from: Optional[str] = field(
+    envelope_to: Optional[str] = field(
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
-            "required": True,
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
         },
     )
 
 
 class PolicyOverrideType(Enum):
-    FORWARDED = "forwarded"
-    SAMPLED_OUT = "sampled_out"
-    TRUSTED_FORWARDER = "trusted_forwarder"
-    MAILING_LIST = "mailing_list"
     LOCAL_POLICY = "local_policy"
+    MAILING_LIST = "mailing_list"
     OTHER = "other"
+    POLICY_TEST_MODE = "policy_test_mode"
+    TRUSTED_FORWARDER = "trusted_forwarder"
 
 
 class SpfdomainScope(Enum):
-    HELO = "helo"
     MFROM = "mfrom"
 
 
 class SpfresultType(Enum):
-    NONE_VALUE = "none"
-    NEUTRAL = "neutral"
-    PASS_VALUE = "pass"
+    NONE = "none"
+    PASS = "pass"
     FAIL = "fail"
     SOFTFAIL = "softfail"
+    POLICY = "policy"
+    NEUTRAL = "neutral"
     TEMPERROR = "temperror"
     PERMERROR = "permerror"
+
+
+class TestingType(Enum):
+    N = "n"
+    Y = "y"
+
+
+@dataclass
+class LangAttrString:
+    class Meta:
+        name = "langAttrString"
+
+    value: str = field(
+        default="",
+        metadata={
+            "required": True,
+        },
+    )
+    lang: str = field(
+        default="en",
+        metadata={
+            "type": "Attribute",
+        },
+    )
 
 
 @dataclass
@@ -112,7 +157,7 @@ class DkimauthResultType:
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
             "required": True,
         },
     )
@@ -120,41 +165,43 @@ class DkimauthResultType:
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
+            "required": True,
         },
     )
     result: Optional[DkimresultType] = field(
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
             "required": True,
         },
     )
-    human_result: Optional[str] = field(
+    human_result: Optional[LangAttrString] = field(
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
         },
     )
 
 
 @dataclass
 class PolicyOverrideReason:
-    type: Optional[PolicyOverrideType] = field(
+    type_value: Optional[PolicyOverrideType] = field(
         default=None,
         metadata={
+            "name": "type",
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
             "required": True,
         },
     )
-    comment: Optional[str] = field(
+    comment: Optional[LangAttrString] = field(
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
         },
     )
 
@@ -165,29 +212,15 @@ class PolicyPublishedType:
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
             "required": True,
-        },
-    )
-    adkim: Optional[AlignmentType] = field(
-        default=None,
-        metadata={
-            "type": "Element",
-            "namespace": "",
-        },
-    )
-    aspf: Optional[AlignmentType] = field(
-        default=None,
-        metadata={
-            "type": "Element",
-            "namespace": "",
         },
     )
     p: Optional[DispositionType] = field(
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
             "required": True,
         },
     )
@@ -195,24 +228,49 @@ class PolicyPublishedType:
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
-            "required": True,
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
         },
     )
-    pct: Optional[int] = field(
+    np: Optional[DispositionType] = field(
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
-            "required": True,
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
+        },
+    )
+    adkim: Optional[AlignmentType] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
+        },
+    )
+    aspf: Optional[AlignmentType] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
+        },
+    )
+    discovery_method: Optional[DiscoveryType] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
         },
     )
     fo: Optional[str] = field(
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
-            "required": True,
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
+        },
+    )
+    testing: Optional[TestingType] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
         },
     )
 
@@ -223,7 +281,7 @@ class ReportMetadataType:
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
             "required": True,
         },
     )
@@ -231,22 +289,22 @@ class ReportMetadataType:
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
             "required": True,
         },
     )
-    extra_contact_info: Optional[str] = field(
+    extra_contact_info: Optional[LangAttrString] = field(
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
         },
     )
     report_id: Optional[str] = field(
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
             "required": True,
         },
     )
@@ -254,15 +312,22 @@ class ReportMetadataType:
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
             "required": True,
         },
     )
-    error: List[str] = field(
-        default_factory=list,
+    error: Optional[LangAttrString] = field(
+        default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
+        },
+    )
+    generator: Optional[str] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
         },
     )
 
@@ -276,7 +341,7 @@ class SpfauthResultType:
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
             "required": True,
         },
     )
@@ -284,16 +349,22 @@ class SpfauthResultType:
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
-            "required": True,
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
         },
     )
     result: Optional[SpfresultType] = field(
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
             "required": True,
+        },
+    )
+    human_result: Optional[LangAttrString] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
         },
     )
 
@@ -304,26 +375,25 @@ class AuthResultType:
         default_factory=list,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
         },
     )
-    spf: List[SpfauthResultType] = field(
-        default_factory=list,
+    spf: Optional[SpfauthResultType] = field(
+        default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
-            "min_occurs": 1,
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
         },
     )
 
 
 @dataclass
 class PolicyEvaluatedType:
-    disposition: Optional[DispositionType] = field(
+    disposition: Optional[ActionDispositionType] = field(
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
             "required": True,
         },
     )
@@ -331,7 +401,7 @@ class PolicyEvaluatedType:
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
             "required": True,
         },
     )
@@ -339,7 +409,7 @@ class PolicyEvaluatedType:
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
             "required": True,
         },
     )
@@ -347,7 +417,7 @@ class PolicyEvaluatedType:
         default_factory=list,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
         },
     )
 
@@ -358,16 +428,15 @@ class RowType:
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
             "required": True,
-            "pattern": r"((1?[0-9]?[0-9]|2[0-4][0-9]|25[0-5]).){3}                 (1?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])|                 ([A-Fa-f0-9]{1,4}:){7}[A-Fa-f0-9]{1,4}",
         },
     )
     count: Optional[int] = field(
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
             "required": True,
         },
     )
@@ -375,7 +444,7 @@ class RowType:
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
             "required": True,
         },
     )
@@ -387,7 +456,7 @@ class RecordType:
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
             "required": True,
         },
     )
@@ -395,7 +464,7 @@ class RecordType:
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
             "required": True,
         },
     )
@@ -403,8 +472,15 @@ class RecordType:
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
+            "namespace": "urn:ietf:params:xml:ns:dmarc-2.0",
             "required": True,
+        },
+    )
+    any_element: List[object] = field(
+        default_factory=list,
+        metadata={
+            "type": "Wildcard",
+            "namespace": "##any",
         },
     )
 
@@ -413,21 +489,18 @@ class RecordType:
 class Feedback:
     class Meta:
         name = "feedback"
-        namespace = "http://dmarc.org/dmarc-xml/0.1"
+        namespace = "urn:ietf:params:xml:ns:dmarc-2.0"
 
     version: Optional[Decimal] = field(
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
-            "required": True,
         },
     )
     report_metadata: Optional[ReportMetadataType] = field(
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
             "required": True,
         },
     )
@@ -435,15 +508,19 @@ class Feedback:
         default=None,
         metadata={
             "type": "Element",
-            "namespace": "",
             "required": True,
+        },
+    )
+    extension: Optional[ExtensionType] = field(
+        default=None,
+        metadata={
+            "type": "Element",
         },
     )
     record: List[RecordType] = field(
         default_factory=list,
         metadata={
             "type": "Element",
-            "namespace": "",
             "min_occurs": 1,
         },
     )

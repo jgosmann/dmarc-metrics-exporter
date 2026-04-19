@@ -1,7 +1,7 @@
-import dmarc_metrics_exporter.model as m
+import dmarc_metrics_exporter.model.dmarc_0_1 as m
 
 
-def create_sample_xml(*, report_id: str = "12598866915817748661") -> str:
+def create_sample_xml_0_1(*, report_id: str = "12598866915817748661") -> str:
     return f"""
 <?xml version="1.0" encoding="UTF-8" ?>
 <feedback>
@@ -53,7 +53,7 @@ def create_sample_xml(*, report_id: str = "12598866915817748661") -> str:
 """.strip()
 
 
-SAMPLE_DATACLASS = m.Feedback(
+SAMPLE_DATACLASS_0_1 = m.Feedback(
     report_metadata=m.ReportMetadataType(
         org_name="google.com",
         email="noreply-dmarc-support@google.com",
@@ -68,8 +68,8 @@ SAMPLE_DATACLASS = m.Feedback(
         domain="mydomain.de",
         adkim=m.AlignmentType.R,
         aspf=m.AlignmentType.R,
-        p=m.DispositionType.NONE_VALUE,
-        sp=m.DispositionType.NONE_VALUE,
+        p=m.DispositionType.NONE,
+        sp=m.DispositionType.NONE,
         pct=100,
     ),
     record=[
@@ -78,8 +78,8 @@ SAMPLE_DATACLASS = m.Feedback(
                 source_ip="dead:beef:1:abc::",
                 count=1,
                 policy_evaluated=m.PolicyEvaluatedType(
-                    disposition=m.DispositionType.NONE_VALUE,
-                    dkim=m.DmarcresultType.PASS_VALUE,
+                    disposition=m.DispositionType.NONE,
+                    dkim=m.DmarcresultType.PASS,
                     spf=m.DmarcresultType.FAIL,
                 ),
             ),
@@ -90,13 +90,13 @@ SAMPLE_DATACLASS = m.Feedback(
                 dkim=[
                     m.DkimauthResultType(
                         domain="mydomain.de",
-                        result=m.DkimresultType.PASS_VALUE,
+                        result=m.DkimresultType.PASS,
                         selector="default",
                     )
                 ],
                 spf=[
                     m.SpfauthResultType(
-                        domain="my-spf-domain.de", result=m.SpfresultType.PASS_VALUE
+                        domain="my-spf-domain.de", result=m.SpfresultType.PASS
                     )
                 ],
             ),

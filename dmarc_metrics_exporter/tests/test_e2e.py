@@ -10,7 +10,11 @@ from prometheus_client.parser import text_string_to_metric_families
 from prometheus_client.samples import Sample
 
 from .conftest import send_email, try_until_success
-from .sample_emails import create_email_with_attachment, create_zip_report
+from .sample_emails import (
+    create_email_with_attachment,
+    create_zip_report,
+    create_zip_report_2_0,
+)
 
 
 @contextmanager
@@ -36,10 +40,13 @@ def dmarc_metrics_exporter(config_path):
 
 
 @pytest.mark.asyncio
-async def test_successful_processing_of_incoming_queue_message(greenmail, tmp_path):
+@pytest.mark.parametrize("report_factory", [create_zip_report, create_zip_report_2_0])
+async def test_successful_processing_of_incoming_queue_message(
+    report_factory, greenmail, tmp_path
+):
     # Given
     msg = create_email_with_attachment(
-        create_zip_report(report_id="1"), to=greenmail.imap.username
+        report_factory(report_id="1"), to=greenmail.imap.username
     )
     await try_until_success(lambda: send_email(msg, greenmail.smtp))
 
@@ -85,7 +92,7 @@ async def test_successful_processing_of_incoming_queue_message(greenmail, tmp_pa
             timeout_seconds=20,
         )
         msg = create_email_with_attachment(
-            create_zip_report(report_id="2"), to=greenmail.imap.username
+            report_factory(report_id="2"), to=greenmail.imap.username
         )
         await send_email(msg, greenmail.smtp)
         await try_until_success(

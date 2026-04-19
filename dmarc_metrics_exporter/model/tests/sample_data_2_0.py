@@ -1,0 +1,108 @@
+from decimal import Decimal
+
+import dmarc_metrics_exporter.model.dmarc_2_0 as m
+
+
+def create_sample_xml_2_0(*, report_id: str = "12598866915817748661") -> str:
+    return f"""
+<?xml version="1.0" encoding="UTF-8" ?>
+<feedback xmlns="urn:ietf:params:xml:ns:dmarc-2.0">
+  <version>1.0</version>
+  <report_metadata>
+    <org_name>google.com</org_name>
+    <email>noreply-dmarc-support@google.com</email>
+    <extra_contact_info>https://support.google.com/a/answer/2466580</extra_contact_info>
+    <report_id>{report_id}</report_id>
+    <date_range>
+      <begin>1607299200</begin>
+      <end>1607385599</end>
+    </date_range>
+  </report_metadata>
+  <policy_published>
+    <domain>mydomain.de</domain>
+    <adkim>r</adkim>
+    <aspf>r</aspf>
+    <p>none</p>
+    <sp>none</sp>
+    <np>none</np>
+  </policy_published>
+  <record>
+    <row>
+      <source_ip>dead:beef:1:abc::</source_ip>
+      <count>1</count>
+      <policy_evaluated>
+        <disposition>none</disposition>
+        <dkim>pass</dkim>
+        <spf>fail</spf>
+      </policy_evaluated>
+    </row>
+    <identifiers>
+      <header_from>mydomain.de</header_from>
+    </identifiers>
+    <auth_results>
+      <dkim>
+        <domain>mydomain.de</domain>
+        <result>pass</result>
+        <selector>default</selector>
+      </dkim>
+      <spf>
+        <domain>my-spf-domain.de</domain>
+        <result>pass</result>
+      </spf>
+    </auth_results>
+  </record>
+</feedback>
+""".strip()
+
+
+SAMPLE_DATACLASS_2_0 = m.Feedback(
+    version=Decimal("1.0"),
+    report_metadata=m.ReportMetadataType(
+        org_name="google.com",
+        email="noreply-dmarc-support@google.com",
+        extra_contact_info=m.LangAttrString(
+            "https://support.google.com/a/answer/2466580"
+        ),
+        report_id="12598866915817748661",
+        date_range=m.DateRangeType(
+            begin=1607299200,
+            end=1607385599,
+        ),
+    ),
+    policy_published=m.PolicyPublishedType(
+        domain="mydomain.de",
+        adkim=m.AlignmentType.R,
+        aspf=m.AlignmentType.R,
+        p=m.DispositionType.NONE,
+        sp=m.DispositionType.NONE,
+        np=m.DispositionType.NONE,
+    ),
+    record=[
+        m.RecordType(
+            row=m.RowType(
+                source_ip="dead:beef:1:abc::",
+                count=1,
+                policy_evaluated=m.PolicyEvaluatedType(
+                    disposition=m.ActionDispositionType.NONE,
+                    dkim=m.DmarcresultType.PASS,
+                    spf=m.DmarcresultType.FAIL,
+                ),
+            ),
+            identifiers=m.IdentifierType(
+                header_from="mydomain.de",
+            ),
+            auth_results=m.AuthResultType(
+                dkim=[
+                    m.DkimauthResultType(
+                        domain="mydomain.de",
+                        result=m.DkimresultType.PASS,
+                        selector="default",
+                    )
+                ],
+                spf=m.SpfauthResultType(
+                    domain="my-spf-domain.de", result=m.SpfresultType.PASS
+                ),
+            ),
+        )
+    ],
+)

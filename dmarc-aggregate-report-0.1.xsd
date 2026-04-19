@@ -1,5 +1,5 @@
-<!-- from RFC7489 Appendic C -->
 <?xml version="1.0"?>
+<!-- from RFC7489 Appendic C -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
   targetNamespace="http://dmarc.org/dmarc-xml/0.1">
 

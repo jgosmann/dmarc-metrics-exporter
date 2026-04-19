@@ -25,20 +25,19 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5.0.0
         with:
-          python-version: '3.13'
+          python-version: "3.13"
 
-      - uses: actions/cache@v4.0.0
+      - uses: actions/cache@v5.0.0
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip
-      - uses: actions/cache@v4.0.0
+      - uses: actions/cache@v5.0.0
         with:
           path: .venv
           key: ${{ runner.os }}-py3.13-venv-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
             ${{ runner.os }}-py3.13-venv-
       - uses: ./.github/actions/setup-project
-
       - name: ${{ matrix.check.name }}
         run: ${{ matrix.check.run }}
 
@@ -46,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
     steps:
       - uses: actions/checkout@v4
@@ -56,18 +55,17 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: actions/cache@v4.0.0
+      - uses: actions/cache@v5.0.0
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip
-      - uses: actions/cache@v4.0.0
+      - uses: actions/cache@v5.0.0
         with:
           path: .venv
           key: ${{ runner.os }}-py${{ matrix.python-version }}-venv-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
             ${{ runner.os }}-py${{ matrix.python-version }}-venv-
       - uses: ./.github/actions/setup-project
-
       - name: Start required services (Greenmail)
         run: docker compose up -d
       - name: Test and measure coverage with pytest
@@ -86,20 +84,19 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5.0.0
         with:
-          python-version: '3.13'
+          python-version: "3.13"
 
-      - uses: actions/cache@v4.0.0
+      - uses: actions/cache@v5.0.0
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip
-      - uses: actions/cache@v4.0.0
+      - uses: actions/cache@v5.0.0
         with:
           path: .venv
           key: ${{ runner.os }}-py3.13-venv-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
             ${{ runner.os }}-py3.13-venv-
       - uses: ./.github/actions/setup-project
-
       - name: Publish to PyPI
         run: poetry publish --build
         env:
