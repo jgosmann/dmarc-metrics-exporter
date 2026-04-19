@@ -75,6 +75,60 @@ def test_loads_old_format(tmp_path):
     )
 
 
+def test_loads_old_format2(tmp_path):
+    metrics_db = tmp_path / "metrics.db"
+    metrics_db.write_text(
+        """{
+      "metrics": [
+        [
+          {
+            "reporter": "google.com",
+            "from_domain": "mydomain.de",
+            "dkim_domain": "dkim-domain.org",
+            "spf_domain": "spf-domain.org"
+          }, {
+            "total_count": 42,
+            "disposition_counts": {"quarantine": 4},
+            "dmarc_compliant_count": 24,
+            "dkim_pass_count": 10,
+            "spf_pass_count": 8,
+            "dkim_aligned_count": 5,
+            "spf_aligned_count": 4
+          }
+        ]
+      ],
+      "invalid_reports": [
+        [
+          {"from_email": "invalid <invalid@example.invalid>"},
+          1
+        ]
+      ]
+    }"""
+    )
+    persister = MetricsPersister(metrics_db)
+    assert persister.load() == DmarcMetricsCollection(
+        metrics={
+            Meta(
+                reporter="google.com",
+                from_domain="mydomain.de",
+                dkim_domain="dkim-domain.org",
+                spf_domain="spf-domain.org",
+            ): DmarcMetrics(
+                total_count=42,
+                disposition_counts={Disposition.QUARANTINE: 4},
+                dmarc_compliant_count=24,
+                dkim_aligned_count=5,
+                dkim_pass_count=10,
+                spf_aligned_count=4,
+                spf_pass_count=8,
+            )
+        },
+        invalid_reports={
+            InvalidMeta(from_email="invalid <invalid@example.invalid>"): 1,
+        },
+    )
+
+
 def test_returns_newly_initialized_metrics_if_db_is_non_existent(tmp_path):
     metrics_db = tmp_path / "metrics.db"
     persister = MetricsPersister(metrics_db)

@@ -3,8 +3,8 @@ name: CI and release pipeline
 on:
   pull_request:
   push:
-    branches: ["main", "develop"]
-    tags: ["*"]
+    branches: [ "main", "develop" ]
+    tags: [ "*" ]
 
 jobs:
   static-analysis:
@@ -19,11 +19,12 @@ jobs:
           - name: Check static typing
             run: poetry run mypy dmarc_metrics_exporter
     steps:
-      - uses: actions/checkout@v4
-      - run: git fetch --no-tags --prune --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+      - uses: actions/checkout@v6
+      - run: git fetch --no-tags --prune --depth=1 origin
+          +refs/heads/main:refs/remotes/origin/main
 
       - name: Set up Python
-        uses: actions/setup-python@v5.0.0
+        uses: actions/setup-python@v6.2.0
         with:
           python-version: "3.13"
 
@@ -45,13 +46,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: [ "3.10", "3.11", "3.12", "3.13", "3.14" ]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5.0.0
+        uses: actions/setup-python@v6.2.0
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -62,7 +63,8 @@ jobs:
       - uses: actions/cache@v5.0.0
         with:
           path: .venv
-          key: ${{ runner.os }}-py${{ matrix.python-version }}-venv-${{ hashFiles('pyproject.toml') }}
+          key: ${{ runner.os }}-py${{ matrix.python-version }}-venv-${{
+            hashFiles('pyproject.toml') }}
           restore-keys: |
             ${{ runner.os }}-py${{ matrix.python-version }}-venv-
       - uses: ./.github/actions/setup-project
@@ -70,19 +72,19 @@ jobs:
         run: docker compose up -d
       - name: Test and measure coverage with pytest
         run: poetry run pytest --verbose --cov=dmarc_metrics_exporter --cov-report=xml
-      - uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v6
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   release:
     runs-on: ubuntu-latest
-    needs: [static-analysis, test]
+    needs: [ static-analysis, test ]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5.0.0
+        uses: actions/setup-python@v6.2.0
         with:
           python-version: "3.13"
 
@@ -110,7 +112,9 @@ jobs:
 
       - name: Extract changelog
         id: changelog
-        run: sed -E -n '/^\[${{ steps.version.outputs.version }}\]/,/^\[[0-9\.]+\]/{/^\[[0-9\.]+\]|^-+$/!p;}' CHANGELOG.rst > release-body.rst
+        run: sed -E -n '/^\[${{ steps.version.outputs.version
+          }}\]/,/^\[[0-9\.]+\]/{/^\[[0-9\.]+\]|^-+$/!p;}' CHANGELOG.rst >
+          release-body.rst
 
       - uses: docker://pandoc/core:3
         with:
@@ -132,7 +136,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   docker-image:
-    needs: [release]
+    needs: [ release ]
     uses: "jgosmann/dmarc-metrics-exporter/.github/workflows/docker-publish.yml@main"
     with:
       version: ${{ github.ref }}
